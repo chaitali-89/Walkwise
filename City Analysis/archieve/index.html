@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapbox Integration</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100%; height: 500px; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<input type="file" id="fileInput" />
+<button id="uploadButton">Upload DXF</button>
+<button id="toggleLayerButton">Toggle Layer</button>
+
+<script>
+
+    // Set the initial map center coordinates
+    const longitude = 12.5587; // Replace with your desired longitude
+    const latitude = 55.6760; // Replace with your desired latitude
+    mapboxgl.accessToken = 'pk.eyJ1IjoiY2hhaS05OCIsImEiOiJjbHY1b251cXUwNTlhMnFyb3N1aWw1aWJqIn0.ZQnazBd0z3c-cH4RPissrg';
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [12.5587, 55.6760], // Set your initial map center
+        zoom: 12
+    });
+
+    let geojsonLayer;
+
+    document.getElementById('uploadButton').onclick = function() {
+        const fileInput = document.getElementById('fileInput');
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+    
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.geojson_filename) {
+                loadGeoJSON(data.geojson_filename);  // Use the filename returned
+            }
+        });
+    };
+    
+    function loadGeoJSON(filename) {
+        if (geojsonLayer) {
+            map.removeLayer('geojsonLayer');
+            map.removeSource('geojsonSource');
+        }
+    
+        fetch(`/geojson/${filename}`)  // Fetch the GeoJSON using the new route
+            .then(response => response.json())
+            .then(data => {
+                map.addSource('geojsonSource', {
+                    type: 'geojson',
+                    data: data
+                });
+
+                 
+                map.addLayer({
+                    'id': 'geojsonLayer',
+                    'type': 'line',
+                    'source': 'geojsonSource',
+                    'layout': {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    'paint': {
+                        'line-color': '#888',
+                        'line-width': 8
+                    }
+                });
+    
+                geojsonLayer = 'geojsonLayer';
+            })
+            .catch(error => console.error('Error loading GeoJSON:', error));
+    }
+
+    document.getElementById('toggleLayerButton').onclick = function() {
+        if (geojsonLayer) {
+            const layerVisibility = map.getLayoutProperty(geojsonLayer, 'visibility');
+            map.setLayoutProperty(geojsonLayer, 'visibility', layerVisibility === 'visible' ? 'none' : 'visible');
+        }
+    };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapbox Integration</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100%; height: 500px; }
+        #fade {
+            display: block;
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            height: 40px;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+            color: #fff;
+            background: #ee8a65;
+        }
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 25%;
+            top: 0;
+            left: 0;
+            padding: 10px;
+        }
+        .map-overlay .map-overlay-inner {
+            background-color: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .map-overlay h2 {
+            line-height: 24px;
+            display: block;
+            margin: 0 0 10px;
+        }
+        .map-overlay input {
+            background-color: transparent;
+            display: inline-block;
+            width: 100%;
+            position: relative;
+            margin: 0;
+            cursor: ew-resize;
+            text-align: center;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="map-overlay top">
+    <!-- Add overlay content if needed -->
+</div>
+
+<input type="file" id="fileInput" />
+<button id="uploadButton">Upload DXF</button>
+<button id="toggleLayerButton">Toggle Layer</button>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiY2hhaS05OCIsImEiOiJjbHY1b251cXUwNTlhMnFyb3N1aWw1aWJqIn0.ZQnazBd0z3c-cH4RPissrg';
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [12.5587, 55.6760],
+        zoom: 12
+    });
+
+    map.on('load', () => {
+        map.addSource('maine', {
+            type: 'geojson',
+            data: '/static/S_cobe_wgs84 (3).geojson'
+        });
+
+        map.addLayer({
+            'id': 'maine',
+            'type': 'fill',
+            'source': 'maine',
+            'layout': {},
+            'paint': {
+                'fill-color': '#E6E4E0',
+                'fill-opacity': 1,
+                'fill-opacity-transition': { duration: 100 }
+            }
+        });
+
+        map.addLayer({
+            'id': 'outline',
+            'type': 'line',
+            'source': 'maine',
+            'layout': {},
+            'paint': {
+                'line-color': '#000',
+                'line-width': 2
+            }
+        });
+    });
+
+    map.on('zoom', () => {
+        const zoom = map.getZoom();
+        if (zoom > 15) {
+            map.setPaintProperty('maine', 'fill-opacity', 1);
+        }
+    });
+
+    map.setMaxZoom(20);
+
+    let geojsonLayerId = null;
+
+    document.getElementById('uploadButton').onclick = function() {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) {
+            alert('Please select a file.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.geojson_filename) {
+                loadGeoJSON(data.geojson_filename);
+            }
+        })
+        .catch(error => console.error('Error uploading file:', error));
+    };
+
+    function loadGeoJSON(filename) {
+        if (geojsonLayerId) {
+            map.removeLayer(geojsonLayerId);
+            map.removeSource('cobe');
+        }
+
+        fetch(`/geojson/${filename}`)
+  .then(response => response.json())
+  .then(data => {
+    map.addSource('cobe', {
+      type: 'geojson',
+      data: data
+    });
+
+    const baseLayerConfig = {
+      'id': 'base-layer',
+      'source': 'cobe',
+      'filter': ['==', 'Urban_Elements', ''],
+      'type': 'fill',
+      'paint': {
+        'fill-color': '#E6E4E0',
+        'fill-opacity': 0
+      },
+      'layout': {
+        'visibility': 'none'
+      }
+    };
+    map.addLayer(baseLayerConfig);
+
+    const layerStyles = {
+      'Site': { 'fill-color': '#E6E4E0', 'fill-opacity': 1 },
+      'Pavement': { 'fill-color': '#F0E7BC', 'fill-opacity': 1 },
+      'Buildings': { 'fill-color': '#DCD9D6', 'fill-opacity': 1 },
+      'Playgrounds': { 'fill-color': '#F0E7BC', 'fill-opacity': 1 },
+      'Street': { 'line-color': '#FFFFFF', 'line-width': 2 },
+      'Tree': { 'fill-color': '#8B4513', 'fill-opacity': 0.6 },
+      'Green_Spaces': { 'fill-color': '#B6E59E', 'fill-opacity': 1 },
+      'bus stops': { 'icon-image': 'bus-15', 'icon-size': 1.5 },
+      'metro': { 'icon-image': 'metro-15', 'icon-size': 1.5 },
+      'Cycle Park': { 'icon-image': 'bicycle-15', 'icon-size': 1.5 }
+    };
+
+    const layerOrder = ['Site', 'Playgrounds', 'Pavement', 'Buildings', 'Street', 'bus stops', 'metro', 'Green_Spaces', 'Tree', 'Cycle Park'];
+
+    layerOrder.forEach(element => {
+      const layerId = `layer-${element.replace(/\s/g, '-')}`;
+      const layerType = (element === 'Street') ? 'line' : (element === 'bus stops' || element === 'metro' || element === 'Cycle Park') ? 'symbol' : 'fill';
+
+      const layerConfig = {
+        'id': layerId,
+        'source': 'cobe',
+        'filter': ['==', 'Urban_Elements', element],
+        'type': layerType
+      };
+
+      if (layerType === 'line') {
+        layerConfig.layout = { 'line-join': 'round', 'line-cap': 'round' };
+        layerConfig.paint = {
+          'line-color': layerStyles[element]['line-color'],
+          'line-width': layerStyles[element]['line-width']
+        };
+      } else if (layerType === 'fill') {
+        layerConfig.paint = {
+          'fill-color': layerStyles[element]['fill-color'],
+          'fill-opacity': layerStyles[element]['fill-opacity']
+        };
+      } else if (layerType === 'symbol') {
+        layerConfig.layout = {
+          'icon-image': layerStyles[element]['icon-image'],
+          'icon-size': layerStyles[element]['icon-size']
+        };
+      }
+
+      map.addLayer(layerConfig);
+    });
+    // Add 3D buildings layer
+    const add3DBuildingsLayer = () => {
+        const layers = map.getStyle().layers;
+        const labelLayerId = layers.find(layer => layer.type === 'symbol' && layer.layout['text-field']).id;
+
+        let sourceLayer = 'Buildings'; // Default source layer name
+
+        // Check if layerStyles has a 'source-layer' property for 'Buildings'
+        if (layerStyles['Buildings'] && layerStyles['Buildings']['source-layer']) {
+            sourceLayer = layerStyles['Buildings']['source-layer'];
+        }
+
+        map.addLayer({
+            'id': 'add-3d-buildings',
+            'source': 'cobe',
+            'filter': ['==', 'extrude', 'true'],
+            'type': 'fill-extrusion',
+            'minzoom': 11,
+            'paint': {
+                'fill-extrusion-color': '#CCCCCC', // Set a solid color for the extrusion
+                'fill-extrusion-height': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    11, // Start at zoom level 11
+                    0, // Height at zoom level 11
+                    13, // Maximum zoom level for extrusion
+                    ['get', 'height'] // Get height from GeoJSON
+                ],
+                'fill-extrusion-base': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    11, // Start at zoom level 11
+                    0, // Base at zoom level 11
+                    13, // Maximum zoom level for base
+                    ['get', 'min_height'] // Get base height from GeoJSON
+                ],
+                'fill-extrusion-opacity': 1 // Ensure full opacity
+            }
+        });
+    };
+
+    // Call the function to add 3D buildings layer
+    add3DBuildingsLayer();
+
+                geojsonLayerId = 'base-layer';
+            })
+            .catch(error => console.error('Error loading GeoJSON:', error));
+    }
+
+    
+    document.getElementById('toggleLayerButton').onclick = function() {
+        if (geojsonLayerId) {
+            const layerVisibility = map.getLayoutProperty(geojsonLayerId, 'visibility');
+            map.setLayoutProperty(geojsonLayerId, 'visibility', layerVisibility === 'visible' ? 'none' : 'visible');
+        }    
+    };
+
+    
+</script>
+
+</body>
+</html>

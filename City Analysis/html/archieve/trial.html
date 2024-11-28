@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1.0">
+    <title>Copenhagen Reference Map</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #key-map { position: absolute; bottom: 20px; right: 20px; width: 200px; height: 200px; border: 2px solid black; background: white; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="key-map"></div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiY2hhaS05OCIsImEiOiJjbHY1b251cXUwNTlhMnFyb3N1aWw1aWJqIn0.ZQnazBd0z3c-cH4RPissrg';
+
+    // Initialize the main map
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [12.550343, 55.665957], // Copenhagen coordinates
+        zoom: 12
+    });
+
+    // Initialize the key map
+    const keyMap = new mapboxgl.Map({
+        container: 'key-map',
+        style: 'mapbox://styles/mapbox/light-v10', // Use a light style for the key map
+        center: [12.550343, 55.665957], // Center on Copenhagen
+        zoom: 9, // Fixed zoom level
+        interactive: false // Disable interaction for the key map
+    });
+
+    // Function to update the position of the rectangle on the key map
+    function updateKeyMap() {
+        const bounds = map.getBounds(); // Get the current bounds of the main map
+
+        // Calculate the coordinates of the rectangle based on the main map's bounds
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        
+        // Create a GeoJSON source for the highlighted area
+        const highlightGeoJSON = {
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[
+                        [sw.lng, sw.lat],
+                        [ne.lng, sw.lat],
+                        [ne.lng, ne.lat],
+                        [sw.lng, ne.lat],
+                        [sw.lng, sw.lat]
+                    ]]
+                }
+            }]
+        };
+
+        // Remove previous highlight layer if it exists
+        if (keyMap.getLayer('highlight')) {
+            keyMap.removeLayer('highlight');
+            keyMap.removeSource('highlight-source');
+        }
+
+        // Add the highlight source and layer
+        keyMap.addSource('highlight-source', {
+            type: 'geojson',
+            data: highlightGeoJSON
+        });
+
+        keyMap.addLayer({
+            id: 'highlight',
+            type: 'fill',
+            source: 'highlight-source',
+            layout: {},
+            paint: {
+                'fill-color': 'black', // Highlight color
+                'fill-opacity': 0.5 // Opacity of the highlight
+            }
+        });
+    }
+
+    // Update the key map on main map move and zoom
+    map.on('moveend', updateKeyMap);
+    map.on('zoomend', updateKeyMap);
+
+    // Initial update of the key map
+    updateKeyMap();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>WalkWise</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.js"></script>
+    <script
+        src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <link rel="stylesheet"
+        href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css"
+        type="text/css">
+    <!-- Import Mapbox GL Draw -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css"
+        type="text/css" />
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+
+    <!-- <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css"
+        type="text/css" /> -->
+
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        body * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+            width: 100%;
+        }
+
+        #north-arrow {
+            position: absolute;
+            top: 100px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background-image: url('/data/north.png');
+            background-size: contain;
+        }
+
+        /* New styles for the day/night toggle */
+        #day-night-toggle {
+            position: absolute;
+            top: 60px;
+            /* Adjust as needed */
+            right: 20px;
+            /* Adjust as needed */
+            width: 42px;
+            /* Adjust size as needed */
+            height: 42px;
+            /* Adjust size as needed */
+            cursor: pointer;
+            z-index: 1;
+            /* Ensure it is above the map */
+        }
+
+        #score-box {
+            position: absolute;
+            bottom: 30px;
+            /* Adjust as needed */
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-family: Arial, sans-serif;
+            z-index: 1;
+            height: 200px;
+            width: 200px;
+            /* Ensure it is above the map */
+        }
+
+
+
+        #container {
+            position: relative;
+            /* Allow absolute positioning of children */
+            height: 100%;
+            width: 100%;
+        }
+
+        .button-container {
+            position: absolute;
+            top: 20px;
+            /* Position from the top */
+            left: 20px;
+            /* Position from the left */
+            z-index: 1;
+            /* Ensure buttons are above the map */
+        }
+
+        .bottom-buttons {
+            display: flex;
+            /* Use flexbox for horizontal alignment */
+            gap: 10px;
+            /* Space between buttons */
+            position: absolute;
+            bottom: 30px;
+            /* Position at the bottom */
+            left: 20px;
+            /* Position from the left */
+        }
+
+        .top-buttons {
+            display: flex;
+            gap: 5px;
+            left: 10px;
+            flex-direction: column;
+            top: 50px;
+            /* Stack buttons vertically */
+        }
+
+        .btn {
+            background-color: rgb(77, 76, 68);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        .btn:hover {
+            background-color: #1f1529;
+        }
+
+        .info-box {
+            position: absolute;
+            margin: 20px;
+            width: 25%;
+            top: 200px;
+            bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+            overflow-y: scroll;
+        }
+
+        .mapboxgl-ctrl-group button {
+            background-color: transparent;
+            border: 0;
+            box-sizing: border-box;
+            cursor: pointer;
+            display: block;
+            height: 29px;
+            outline: none;
+            overflow: hidden;
+            padding: 0;
+            width: 29px;
+            top: 500px;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 20px auto;
+            /* center the gauge horizontally */
+            margin-bottom: 20px;
+        }
+
+        .gauge-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+
+        .gauge-foreground {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #00FF00;
+            /* Default color, will be overridden by inline style */
+            transform-origin: center center;
+            transform: rotate(0deg);
+            transition: transform 0.5s ease;
+        }
+
+        .gauge-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .popup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .popup-table th {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-bottom: 1px solid #241354;
+        }
+
+        .popup-table td {
+            padding: 10px;
+            border-bottom: 1px solid #aaaaaa;
+        }
+
+        .centered {
+            text-align: center;
+        }
+
+        .popup-content {
+            position: relative;
+            background: rgba(16, 17, 69, 0.1);
+            max-height: 400px;
+            /* Adjust based on your needs */
+            overflow: hidden;
+            border-radius: 10px;
+            padding: 10px 10px 10px 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .slider-container {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            /* Width of the slider */
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .slider {
+            height: 100%;
+            width: 100%;
+        }
+
+        .slider-content {
+            overflow-y: auto;
+            height: 100%;
+            position: relative;
+            padding-right: 20px;
+            /* Ensure content does not overlap the slider */
+        }
+    </style>
+</head>
+
+<body>
+    <div id='container'>
+        <div id="map"></div>
+        <div class="bottom-buttons">
+            <button id="fly_to_vesterbro" class="btn">Jernbanebyen</button>
+            <button id="city_center" class="btn">City Center</button>
+            <button id="new_1" class="btn">Nordhavnen</button>
+            <button id="cool" class="btn">Bledammen</button>
+            <button id="industrial" class="btn">Meatpacking District (Industrial)</button>
+            <button id="new_2" class="btn">Amager East</button>
+
+            <button id="reset-view" class="btn">Reset</button>
+        </div>
+        <div class="button-container">
+
+            <div class="top-buttons">
+                <button id="toggleAmenitiesDistance" class="btn">Distance to Amenities</button>
+                <button id="toggleBusProximity" class="btn">Distance to Transit</button>
+                <button id="toggleDiversity" class="btn">Diversity</button>
+                <button id="toggleDensity" class="btn">Density</button>
+                <button id="toggleDesign" class="btn">Design</button>
+                <button id="toggleIsochrone">Hide Isochrone</button>
+            </div>
+        </div>
+        <img id="day-night-toggle" src="/data/moon.png" alt="Toggle Day/Night" onclick="toggleDayNight()">
+        <div id="score-box">Street Class Score: <span id="edge-class-score">0</span></div>
+        <div id="north-arrow"></div>
+    </div>
+    </div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiY2hhaS05OCIsImEiOiJjbHY1b251cXUwNTlhMnFyb3N1aWw1aWJqIn0.ZQnazBd0z3c-cH4RPissrg';
+        const INITIAL_CENTER = [12.605816, 55.685339];
+        const INITIAL_ZOOM = 12;
+
+        const DAY_0 = '#00FF00';
+        const DAY_1 = '#A4D65E';
+        const DAY_2 = '#FFD700';
+        const DAY_3 = '#FFA500';
+        const DAY_4 = '#FF4500';
+        const DAY_5 = '#FF0000';
+        const DAY_REST = '#2C3035'
+        const NGT_0 = '#00FF00';
+        const NGT_1 = '#A4D65E';
+        const NGT_2 = '#FFD700';
+        const NGT_3 = '#FFA500';
+        const NGT_4 = '#FF4500';
+        const NGT_5 = '#FF0000';
+        const NGT_REST = '#2C3035';
+        const ZOOM_1 = 1;
+        const ZOOM_8 = 8;
+        const ZOOM_DAY_2 = 2;
+        const ZOOM_DAY_10 = 10;
+        const BLUR_1 = 1;
+        const BLUR_6 = 6;
+        const BLUR_DAY1 = 1;
+        const BLUR_DAY2 = 2;
+        const EMISSION_STRENGTH = 2;
+        const OPACITY_1 = 1;
+        const OPACITY_05 = 0.5;
+        const OPACITY_0 = 0;
+        const OPACITY_DAY1 = 1;
+        const OPACITY_DAY08 = 0.5;
+
+
+
+
+
+
+        const BUTTON_OFF = 'rgb(77, 76, 68)';
+        const BUTTON_ON = '#1f1529';
+        const DAY_STYLE = 'mapbox://styles/chai-98/clzzutg9j005m01ph9t2x02k8'; // Navigation Day
+        const NIGHT_STYLE = 'mapbox://styles/chai-98/clzstbrfp00f901pi2co7cldy'; // Navigation 3d copy
+        let currentStyle = NIGHT_STYLE;
+
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: currentStyle,
+            center: INITIAL_CENTER,
+            zoom: INITIAL_ZOOM,
+            pitch: 0,
+            bearing: -50
+        });
+
+        map.addControl(
+            new MapboxGeocoder({
+                accessToken: mapboxgl.accessToken,
+                mapboxgl: mapboxgl
+            })
+        )
+
+
+
+        function addGeoJsonSources() {
+            if (!map.getSource('amenity-distance')) {
+                map.addSource('amenity-distance', {
+                    type: 'geojson',
+                    data: '/data/Amenities.geojson',
+                    promoteId: 'osmid'
+                });
+            }
+            if (!map.getSource('bus-proximity')) {
+                map.addSource('bus-proximity', {
+                    type: 'geojson',
+                    data: '/data/Bus_Proximity.geojson',
+                    promoteId: 'osmid'
+                });
+            }
+            if (!map.getSource('diversity')) {
+                map.addSource('diversity', {
+                    type: 'geojson',
+                    data: '/data/Diversity.geojson',
+                    promoteId: 'osmid'
+                });
+            }
+            if (!map.getSource('density')) {
+                map.addSource('density', {
+                    type: 'geojson',
+                    data: '/data/Density.geojson',
+                    promoteId: 'osmid'
+                });
+            }
+            if (!map.getSource('design')) {
+                map.addSource('design', {
+                    type: 'geojson',
+                    data: '/data/Design.geojson',
+                    promoteId: 'osmid'
+                });
+            }
+        }
+
+        function loadGeoJsonLayers() {
+            const layers = [
+                {
+                    id: 'amenity-distance-line',
+                    source: 'amenity-distance',
+                    type: 'line',
+                    paint: {
+                        'line-color': [
+                            'match',
+                            ['get', 'edge_class'],
+                            0, DAY_0,
+                            1, DAY_1,
+                            2, DAY_2,
+                            3, DAY_3,
+                            4, DAY_4,
+                            5, DAY_5,
+                            DAY_REST
+                        ],
+                        'line-width': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14, ZOOM_1,
+                            18, ZOOM_8
+                        ],
+                        'line-blur': [
+                            'case',
+                            ['boolean', ['feature-state', 'hover'], false],
+                            BLUR_1, // Blur when hovered
+                            BLUR_6 // Default blur
+                        ],
+                        'line-emissive-strength': EMISSION_STRENGTH, // Increased emissive strength when hovered
+                        'line-opacity': [
+                            'case',
+                            ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                            ['case',
+                                ['boolean', ['feature-state', 'hover'], false],
+                                OPACITY_1,
+                                OPACITY_05
+                            ]
+                        ]
+                    },
+                    layout: {
+                        visibility: 'none',
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    }
+                },
+                {
+                    id: 'bus-proximity-line',
+                    source: 'bus-proximity',
+                    type: 'line',
+                    paint: {
+                        'line-color': [
+                            'match',
+                            ['get', 'edge_class'],
+                            0, DAY_0,
+                            1, DAY_1,
+                            2, DAY_2,
+                            3, DAY_3,
+                            4, DAY_4,
+                            5, DAY_5,
+                            DAY_REST
+                        ],
+                        'line-width': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14, ZOOM_1,
+                            18, ZOOM_8
+                        ],
+                        'line-blur': [
+                            'case',
+                            ['boolean', ['feature-state', 'hover'], false],
+                            BLUR_1, // Blur when hovered
+                            BLUR_6 // Default blur
+                        ],
+                        'line-emissive-strength': EMISSION_STRENGTH, // Increased emissive strength when hovered
+                        'line-opacity': [
+                            'case',
+                            ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                            ['case',
+                                ['boolean', ['feature-state', 'hover'], false],
+                                OPACITY_1,
+                                OPACITY_05
+                            ]
+                        ]
+                    },
+                    layout: {
+                        visibility: 'none',
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    }
+                },
+                {
+                    id: 'diversity-line',
+                    source: 'diversity',
+                    type: 'line',
+                    paint: {
+                        'line-color': [
+                            'match',
+                            ['get', 'edge_class'],
+                            0, DAY_0,
+                            1, DAY_1,
+                            2, DAY_2,
+                            3, DAY_3,
+                            4, DAY_4,
+                            5, DAY_5,
+                            DAY_REST
+                        ],
+                        'line-width': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14, ZOOM_1,
+                            18, ZOOM_8
+                        ],
+                        'line-blur': [
+                            'case',
+                            ['boolean', ['feature-state', 'hover'], false],
+                            BLUR_1, // Blur when hovered
+                            BLUR_6 // Default blur
+                        ],
+                        'line-emissive-strength': EMISSION_STRENGTH, // Increased emissive strength when hovered
+                        'line-opacity': [
+                            'case',
+                            ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                            ['case',
+                                ['boolean', ['feature-state', 'hover'], false],
+                                OPACITY_1,
+                                OPACITY_05
+                            ]
+                        ]
+                    },
+                    layout: {
+                        visibility: 'none',
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    }
+                },
+                {
+                    id: 'density-line',
+                    source: 'density',
+                    type: 'line',
+                    paint: {
+                        'line-color': [
+                            'match',
+                            ['get', 'edge_class'],
+                            0, DAY_0,
+                            1, DAY_1,
+                            2, DAY_2,
+                            3, DAY_3,
+                            4, DAY_4,
+                            5, DAY_5,
+                            DAY_REST
+                        ],
+                        'line-width': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14, ZOOM_1,
+                            18, ZOOM_8
+                        ],
+                        'line-blur': [
+                            'case',
+                            ['boolean', ['feature-state', 'hover'], false],
+                            BLUR_1, // Blur when hovered
+                            BLUR_6 // Default blur
+                        ],
+                        'line-emissive-strength': EMISSION_STRENGTH, // Increased emissive strength when hovered
+                        'line-opacity': [
+                            'case',
+                            ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                            ['case',
+                                ['boolean', ['feature-state', 'hover'], false],
+                                OPACITY_1,
+                                OPACITY_05
+                            ]
+                        ]
+                    },
+                    layout: {
+                        visibility: 'none',
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    }
+                },
+                {
+                    id: 'design-line',
+                    source: 'design',
+                    type: 'line',
+                    paint: {
+                        'line-color': [
+                            'match',
+                            ['get', 'edge_class'],
+                            0, DAY_0,
+                            1, DAY_1,
+                            2, DAY_2,
+                            3, DAY_3,
+                            4, DAY_4,
+                            5, DAY_5,
+                            DAY_REST
+                        ],
+                        'line-width': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14, ZOOM_1,
+                            18, ZOOM_8
+                        ],
+                        'line-blur': [
+                            'case',
+                            ['boolean', ['feature-state', 'hover'], false],
+                            BLUR_1, // Blur when hovered
+                            BLUR_6 // Default blur
+                        ],
+                        'line-emissive-strength': EMISSION_STRENGTH, // Increased emissive strength when hovered
+                        'line-opacity': [
+                            'case',
+                            ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                            ['case',
+                                ['boolean', ['feature-state', 'hover'], false],
+                                OPACITY_1,
+                                OPACITY_05
+                            ]
+                        ]
+                    },
+                    layout: {
+                        visibility: 'none',
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    }
+                }
+
+            ];
+
+
+            layers.forEach(layer => {
+                if (!map.getLayer(layer.id)) {
+                    if (map.getSource(layer.source)) {
+                        map.addLayer(layer);
+                    } else {
+                        console.error(`Source ${layer.source} does not exist.`);
+                    }
+                }
+            });
+
+
+
+            let hoveredLineId = null;
+
+            // Add hover functionality
+            addHoverEffect('amenity-distance-line');
+            addHoverEffect('bus-proximity-line');
+            addHoverEffect('diversity-line');
+            addHoverEffect('density-line');
+            addHoverEffect('design-line')
+        }
+
+        function addHoverEffect(layerId) {
+            map.on('mouseenter', layerId, (e) => {
+                // Change the cursor to a pointer
+                map.getCanvas().style.cursor = 'pointer';
+
+                // Get the feature ID(s)
+                const features = map.queryRenderedFeatures(e.point, {
+                    layers: [layerId]
+                });
+
+                if (features.length) {
+                    const featureId = features[0].id; // Assuming you want to hover the first feature
+                    // Set the feature state to hover
+                    map.setFeatureState(
+                        { source: features[0].source, id: featureId },
+                        { hover: true }
+                    );
+                }
+            });
+
+            map.on('mouseleave', layerId, () => {
+                // Reset the cursor
+                map.getCanvas().style.cursor = '';
+
+                // Reset the feature state
+                map.queryRenderedFeatures({ layers: [layerId] }).forEach(feature => {
+                    map.setFeatureState(
+                        { source: feature.source, id: feature.id },
+                        { hover: false }
+                    );
+                });
+            });
+        }
+
+        // UPDATE PAINT PROPERTIES AS PER DAY AND NIGHT VIEW
+        //function updateLayerPaintProperties(style) {
+        // Define paint properties for day and night views
+        const dayPaintProperties = {
+            'amenity-distance-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, DAY_0,
+                    1, DAY_1,
+                    2, DAY_2,
+                    3, DAY_3,
+                    4, DAY_4,
+                    5, DAY_5,
+                    DAY_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_DAY_2, // Increased width for day
+                    18, ZOOM_DAY_10 // Increased width for day
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_DAY1, // Increased blur on hover
+                    BLUR_DAY2 // Default blur for day
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_DAY1,
+                        OPACITY_DAY08
+                    ]
+                ]
+            },
+            'bus-proximity-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, DAY_0,
+                    1, DAY_1,
+                    2, DAY_2,
+                    3, DAY_3,
+                    4, DAY_4,
+                    5, DAY_5,
+                    DAY_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_DAY_2, // Increased width for day
+                    18, ZOOM_DAY_10 // Increased width for day
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_DAY1, // Increased blur on hover
+                    BLUR_DAY2 // Default blur for day
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_DAY1,
+                        OPACITY_DAY08
+                    ]
+                ]
+            },
+            'diversity-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, DAY_0,
+                    1, DAY_1,
+                    2, DAY_2,
+                    3, DAY_3,
+                    4, DAY_4,
+                    5, DAY_5,
+                    DAY_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_DAY_2, // Increased width for day
+                    18, ZOOM_DAY_10 // Increased width for day
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_DAY1, // Increased blur on hover
+                    BLUR_DAY2 // Default blur for day
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_DAY1,
+                        OPACITY_DAY08
+                    ]
+                ]
+            },
+            'density-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, DAY_0,
+                    1, DAY_1,
+                    2, DAY_2,
+                    3, DAY_3,
+                    4, DAY_4,
+                    5, DAY_5,
+                    DAY_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_DAY_2, // Increased width for day
+                    18, ZOOM_DAY_10 // Increased width for day
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_DAY1, // Increased blur on hover
+                    BLUR_DAY2 // Default blur for day
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_DAY1,
+                        OPACITY_DAY08
+                    ]
+                ]
+            },
+            'design-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, DAY_0,
+                    1, DAY_1,
+                    2, DAY_2,
+                    3, DAY_3,
+                    4, DAY_4,
+                    5, DAY_5,
+                    DAY_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_DAY_2, // Increased width for day
+                    18, ZOOM_DAY_10 // Increased width for day
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_DAY1, // Increased blur on hover
+                    BLUR_DAY2 // Default blur for day
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_DAY1,
+                        OPACITY_DAY08
+                    ]
+                ]
+            }
+        };
+
+        const nightPaintProperties = {
+            'amenity-distance-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, NGT_0,
+                    1, NGT_1,
+                    2, NGT_2,
+                    3, NGT_3,
+                    4, NGT_4,
+                    5, NGT_5,
+                    NGT_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_1,
+                    18, ZOOM_8 // Night
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_1, // Blur when hovered
+                    BLUR_6 // Default blur
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_1,
+                        OPACITY_05
+                    ]
+                ]
+            },
+            'bus-proximity-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, NGT_0,
+                    1, NGT_1,
+                    2, NGT_2,
+                    3, NGT_3,
+                    4, NGT_4,
+                    5, NGT_5,
+                    NGT_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_1,
+                    18, ZOOM_8 // Night
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_1, // Blur when hovered
+                    BLUR_6 // Default blur
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_1,
+                        OPACITY_05
+                    ]
+                ]
+            },
+            'diversity-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, NGT_0,
+                    1, NGT_1,
+                    2, NGT_2,
+                    3, NGT_3,
+                    4, NGT_4,
+                    5, NGT_5,
+                    NGT_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_1,
+                    18, ZOOM_8 // Night
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_1, // Blur when hovered
+                    BLUR_6 // Default blur
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_1,
+                        OPACITY_05
+                    ]
+                ]
+            },
+            'density-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, NGT_0,
+                    1, NGT_1,
+                    2, NGT_2,
+                    3, NGT_3,
+                    4, NGT_4,
+                    5, NGT_5,
+                    NGT_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_1,
+                    18, ZOOM_8 // Night
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_1, // Blur when hovered
+                    BLUR_6 // Default blur
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_1,
+                        OPACITY_05
+                    ]
+                ]
+            },
+            'design-line': {
+                'line-color': [
+                    'match',
+                    ['get', 'edge_class'],
+                    0, NGT_0,
+                    1, NGT_1,
+                    2, NGT_2,
+                    3, NGT_3,
+                    4, NGT_4,
+                    5, NGT_5,
+                    NGT_REST
+                ],
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    14, ZOOM_1,
+                    18, ZOOM_8 // Night
+                ],
+                'line-blur': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    BLUR_1, // Blur when hovered
+                    BLUR_6 // Default blur
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+                    ['case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        OPACITY_1,
+                        OPACITY_05
+                    ]
+                ]
+            }
+        };
+
+        // Function to update paint properties based on the current style
+        function updatePaintProperties(style) {
+            const paintProperties = style === 'day' ? dayPaintProperties : nightPaintProperties;
+
+            Object.keys(paintProperties).forEach(layerId => {
+                const properties = paintProperties[layerId];
+                if (map.getLayer(layerId)) {
+                    Object.keys(properties).forEach(property => {
+                        map.setPaintProperty(layerId, property, properties[property]);
+                    });
+                }
+            });
+        }
+
+        // Toggle between day and night views
+
+
+        // Function to toggle day and night views
+        function toggleDayNight() {
+            const newStyle = currentStyle === 'night' ? 'day' : 'night';
+            currentStyle = newStyle;
+
+            // Change the image based on the current style
+            const dayNightToggleImg = document.getElementById('day-night-toggle');
+            dayNightToggleImg.src = currentStyle === 'day' ? '/data/sun.png' : '/data/moon.png';
+
+            // Update the map style and paint properties
+            map.setStyle(newStyle === 'day' ? 'mapbox://styles/chai-98/clzzutg9j005m01ph9t2x02k8' : 'mapbox://styles/chai-98/clzstbrfp00f901pi2co7cldy');
+
+            map.once('style.load', () => {
+                addGeoJsonSources(); // Re-add sources after style is loaded
+                loadGeoJsonLayers(); // Re-load layers after style change
+                updatePaintProperties(currentStyle === DAY_STYLE ? 'day' : 'night'); // Update paint properties
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            map.on('load', () => {
+                addGeoJsonSources(); // Add sources initially
+                loadGeoJsonLayers(); // Load layers initially
+
+
+
+                document.getElementById('toggleAmenitiesDistance').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('amenity-distance-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                    map.setLayoutProperty('amenity-distance-line', 'visibility', newVisibility);
+
+                    // Turn off other layers if amenities distance is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('landuse-fill', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                    }
+
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+                });
+
+                document.getElementById('toggleBusProximity').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('bus-proximity-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                    map.setLayoutProperty('bus-proximity-line', 'visibility', newVisibility);
+
+                    // Turn off other layers if bus proximity is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('landuse-fill', 'visibility', 'none');
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('diversity-line', 'visibility', 'none');
+                        map.setLayoutProperty('density-line', 'visibility', 'none');
+                        map.setLayoutProperty('design-line', 'visibility', 'none');
+                    }
+
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+                });
+
+                document.getElementById('toggleDiversity').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('diversity-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                    map.setLayoutProperty('diversity-line', 'visibility', newVisibility);
+
+                    // Turn off other layers if diversity is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('landuse-fill', 'visibility', 'none');
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                        map.setLayoutProperty('density-line', 'visibility', 'none');
+                        map.setLayoutProperty('design-line', 'visibility', 'none');
+                    }
+
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+                });
+
+                document.getElementById('toggleDensity').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('density-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                    map.setLayoutProperty('density-line', 'visibility', newVisibility);
+
+                    // Turn off other layers if density is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                        map.setLayoutProperty('diversity-line', 'visibility', 'none');
+                        map.setLayoutProperty('design-line', 'visibility', 'none');
+                    }
+
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+                });
+
+                document.getElementById('toggleDesign').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('design-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                    map.setLayoutProperty('design-line', 'visibility', newVisibility);
+
+                    // Turn off other layers if design is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                        map.setLayoutProperty('diversity-line', 'visibility', 'none');
+                        map.setLayoutProperty('density-line', 'visibility', 'none');
+                    }
+
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+                });
+
+
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            map.on('load', () => {
+                addGeoJsonSources(); // Add sources initially
+                loadGeoJsonLayers(); // Load layers initially
+
+                // Fly to Vesterbro button
+                document.getElementById('fly_to_vesterbro').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.548210859480946, 55.65924381744574],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+
+
+                // Fly to Vesterbro button
+                document.getElementById('city_center').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.574958078728185, 55.67862427281513],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('new_1').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.606680174238633, 55.715658704138924],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('cool').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.559679890862206, 55.69132942151625],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('industrial').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.558270235456076, 55.670084677991895],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('new_2').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.62263242998028, 55.66389592066291],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Reset view button
+                document.getElementById('reset-view').addEventListener('click', () => {
+                    map.flyTo({
+                        center: INITIAL_CENTER,
+                        zoom: INITIAL_ZOOM,
+                        pitch: 0,
+                        essential: true
+                    });
+                });
+            });
+        });
+
+
+
+
+        // Function to calculate the overall edge class score
+        function calculateEdgeClassScore(features) {
+            let totalScore = 0;
+            let count = 0;
+
+            features.forEach(feature => {
+                const edgeClass = feature.properties.edge_class; // Assuming edge_class is a property in your GeoJSON
+                if (edgeClass !== undefined) {
+                    totalScore += edgeClass; // Add the edge class score
+                    count++;
+                }
+            });
+
+            // Return the average score as a whole number
+            return count > 0 ? Math.round(totalScore / count) : 0; // Use Math.round() to round to nearest whole number
+        }
+
+        // Function to update the score box
+        function updateScoreBox() {
+            const visibleLayers = ['amenity-distance', 'bus-proximity', 'diversity', 'density', 'design']; // Add all relevant layer IDs
+            let allFeatures = [];
+
+            visibleLayers.forEach(layer => {
+                const visibility = map.getLayoutProperty(layer + '-line', 'visibility');
+                if (visibility === 'visible') {
+                    const features = map.querySourceFeatures(layer);
+                    allFeatures = allFeatures.concat(features);
+                }
+            });
+
+            const score = calculateEdgeClassScore(allFeatures);
+            document.getElementById('edge-class-score').textContent = score; // Update the score in the box
+        }
+
+        // Call updateScoreBox whenever the map's view changes or layers are toggled
+        map.on('idle', updateScoreBox);
+
+
+        // Initialize the map
+        map.on('load', () => {
+            loadGeoJsonLayers(); // Load layers when the map is loaded
+            updateScoreBox(); // Update the score box initially
+
+            // Optionally, update the score whenever the map is moved or zoomed
+            //map.on('moveend', updateScoreBox);
+        });
+
+
+        // North Arrow Rotation Logic
+        map.on('move', () => {
+            const rotation = map.getBearing();
+            document.getElementById('north-arrow').style.transform = `rotate(${-rotation}deg)`;
+        });
+
+        // Add click event to reset north arrow position
+        document.getElementById('north-arrow').addEventListener('click', () => {
+            document.getElementById('north-arrow').style.transform = 'rotate(0deg)';
+            map.setBearing(0); // Reset bearing to 0 (north orientation)
+        });
+
+
+
+
+
+        //map on click popup feature
+        // Create a variable to store the current popup instance
+        function getRatingColor(edgeClass) {
+            if (edgeClass < 3) {
+                return '#00FF00'; // green
+            } else if (edgeClass < 4) {
+                return '#FFFF00'; // yellow
+            } else if (edgeClass < 5) {
+                return '#FFA500'; // orange
+            } else {
+                return '#FF0000'; // red
+            }
+        }
+
+
+
+
+        //on click popup feature
+        let currentPopup = null;
+
+        map.on('click', (e) => {
+            if (currentPopup) {
+                currentPopup.remove();
+            }
+
+            const features = map.queryRenderedFeatures(e.point, { layers: ['road', 'building', 'landuse', 'poi-label', 'amenity-distance-line', 'bus-proximity-line', 'diversity-line', 'density-line', 'design-line'] });
+
+            if (!features.length) {
+                return;
+            }
+
+            let popupContent = '';
+            const visibleLayers = {
+                'amenity-distance-line': map.getLayoutProperty('amenity-distance-line', 'visibility') === 'visible',
+                'bus-proximity-line': map.getLayoutProperty('bus-proximity-line', 'visibility') === 'visible',
+                'diversity-line': map.getLayoutProperty('diversity-line', 'visibility') === 'visible',
+                'density-line': map.getLayoutProperty('density-line', 'visibility') === 'visible',
+                'design-line': map.getLayoutProperty('design-line', 'visibility') === 'visible'
+
+            };
+
+            const feature = features[0]; // Get the first feature
+
+            // Check for road features
+            if (feature.layer.id === 'road') {
+                const roadProperties = feature.properties;
+                popupContent = `
+                    <div class="centered">
+                            <table class="popup-table">
+                        <tr><th>Property</th><th>Value</th></tr>
+                       <tr><td>name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                        <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                        <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                        <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                        <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                         <tr><td>iso_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                    </table>
+                `;
+            } else if (visibleLayers['amenity-distance-line'] && feature.layer.id === 'amenity-distance-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                   
+                            <div class="centered">
+                                <h3>Road 
+                                <br>Amenity Proximity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['bus-proximity-line'] && feature.layer.id === 'bus-proximity-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Bus Proximity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['diversity-line'] && feature.layer.id === 'diversity-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Diversity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['diversity-line'] && feature.layer.id === 'diversity-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Diversity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            else if (visibleLayers['density-line'] && feature.layer.id === 'density-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                
+                                <br>Density Rating for Streets</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['design-line'] && feature.layer.id === 'design-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Design Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            else {
+                // For other layers like buildings, landuse, poi-label
+                const properties = feature.properties;
+                popupContent = `
+                    <div class="centered">
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${properties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${properties.type || 'N/A'}</td></tr>
+                                <tr><td>Height</td><td>${properties.height || 'N/A'} m</td></tr>
+                                <tr><td>Class</td><td>${properties.class || 'N/A'}</td></tr>
+                                <tr><td>Landuse Size Rank</td><td>${properties.sizerank || 'N/A'}</td></tr>
+                                
+                                <tr><td>Category</td><td>${properties.category_en || 'N/A'}</td></tr>
+                                <tr><td>iso_3166_2</td><td>${properties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (popupContent) {
+                currentPopup = new mapboxgl.Popup({ closeButton: true })
+                    .setLngLat(e.lngLat)
+                    .setHTML(`
+                        <div class="popup-content" style="max-height: 300px; overflow-y: auto;">
+  ${popupContent}
+</div>
+                    `)
+                    .addTo(map);
+            }
+        });
+
+
+
+        //Mapbox Draw tool 
+        // Add the draw tool to the map
+        // Toggle Isochrone layer visibility
+        // Toggle Isochrone layer visibility
+        let isochroneVisible = true;
+        document.getElementById('toggleIsochrone').addEventListener('click', function () {
+            if (isochroneVisible) {
+                map.setLayoutProperty('isoLayer', 'visibility', 'none');
+                isochroneVisible = false;
+                this.textContent = 'Show Isochrone';
+            } else {
+                map.setLayoutProperty('isoLayer', 'visibility', 'visible');
+                isochroneVisible = true;
+                this.textContent = 'Hide Isochrone';
+            }
+        });
+
+        // Create variables to use in getIso()
+        const urlBase = 'https://api.mapbox.com/isochrone/v1/mapbox/';
+        let lon = -77.034; // Initial longitude
+        let lat = 38.899;  // Initial latitude
+        let profile = 'walking'; // Profile set to walking
+        let minutes = 15; // Only 15 minutes
+
+        // Function to determine color based on edge_class score
+        function getColorFromEdgeClass(edgeClassScore) {
+            if (edgeClassScore > 4) {
+                return '#FF0000'; // Red for low scores
+            } else if (edgeClassScore > 3) {
+                return '#FFFF00'; // Yellow for medium scores
+            } else {
+                return 'grey'; // Green for high scores
+            }
+        }
+
+        // Create a function that sets up the Isochrone API query then makes a fetch call
+        async function getIso() {
+            const query = await fetch(
+                `${urlBase}${profile}/${lon},${lat}?contours_minutes=${minutes}&polygons=true&access_token=${mapboxgl.accessToken}`,
+                { method: 'GET' }
+            );
+
+            const data = await query.json();
+            // Set the 'iso' source's data to what's returned by the API query
+            map.getSource('iso').setData(data);
+
+            // Calculate edge class score and update isochrone color
+            calculateEdgeClassAndColor(data);
+        }
+
+        // Function to calculate edge_class score and update isochrone color
+        function calculateEdgeClassAndColor(isoData) {
+            let totalEdgeClassScore = 0;
+            let featureCount = 0;
+
+            // Loop through each GeoJSON layer to find the active one
+            const geoJsonLayers = ['amenity-distance-line', 'bus-proximity-line', 'diversity-line', 'density-line', 'design-line']; // Replace with your actual layer IDs
+            geoJsonLayers.forEach(layerId => {
+                const geoJsonLayer = map.getSource(layerId);
+                if (geoJsonLayer && map.getLayoutProperty(layerId, 'visibility') === 'visible') {
+                    const geoJsonData = geoJsonLayer._data;
+
+                    // Calculate edge_class score for the visible GeoJSON layer
+                    isoData.features.forEach(feature => {
+                        if (feature.properties && feature.properties.edge_class) {
+                            const edgeClassValue = feature.properties.edge_class;
+
+                            // Check if the feature intersects with the GeoJSON layer
+                            const intersects = geoJsonData.features.some(geoFeature => {
+                                return turf.intersect(feature, geoFeature); // Using turf.js for intersection check
+                            });
+
+                            if (intersects) {
+                                totalEdgeClassScore += edgeClassValue;
+                                featureCount++;
+                            }
+                        }
+                    });
+                }
+            });
+
+            const averageEdgeClassScore = featureCount > 0 ? totalEdgeClassScore / featureCount : 0;
+            const fillColor = getColorFromEdgeClass(averageEdgeClassScore);
+
+            // Update the layer paint property with the new color
+            map.setPaintProperty('isoLayer', 'fill-color', fillColor);
+        }
+
+        map.on('load', () => {
+            // When the map loads, add the source and layer
+            map.addSource('iso', {
+                type: 'geojson',
+                data: {
+                    'type': 'FeatureCollection',
+                    'features': []
+                }
+            });
+
+            // Layer for 15-minute isochrone
+            map.addLayer(
+                {
+                    'id': 'isoLayer',
+                    'type': 'fill',
+                    'source': 'iso',
+                    'layout': {},
+                    'paint': {
+                        'fill-color': 'grey', // Default color (will be updated)
+                        'fill-opacity': 0.3
+                    },
+                },
+                'poi-label'
+            );
+
+            // Make the API call initially
+            getIso();
+        });
+
+        // Event listener for mouse move to update isochrone
+        map.on('mousemove', (e) => {
+            // Update lon and lat based on mouse position
+            lon = e.lngLat.lng;
+            lat = e.lngLat.lat;
+
+            // Update isochrone
+            getIso();
+        });
+
+        // Event listener for GeoJSON layer toggle
+        document.getElementById('toggleGeoJsonLayer').addEventListener('click', function () {
+            const geoJsonLayerVisible = map.getLayoutProperty('geoJsonLayer', 'visibility') === 'visible';
+            map.setLayoutProperty('geoJsonLayer', 'visibility', geoJsonLayerVisible ? 'none' : 'visible');
+
+            // Recalculate edge class and update isochrone color only when the layer is turned on
+            if (!geoJsonLayerVisible) {
+                calculateEdgeClassAndColor(map.getSource('iso')._data);
+            } else {
+                // If the layer is turned on, recalculate the color based on the newly visible layer
+                getIso(); // Optionally call to refresh the isochrone
+            }
+        });
+
+        document
+            .getElementById('lightPreset')
+            .addEventListener('change', function () {
+                map.setPaintProperty('line', 'line-emissive-strength', this.value === 'day' ? 0.8 : 1);
+            });
+
+        document
+            .querySelectorAll('.map-overlay-inner input[type="checkbox"]')
+            .forEach((checkbox) => {
+                checkbox.addEventListener('change', function () {
+                    const property = this.id.startsWith('show') ? 'visibility' : 'line-opacity';
+                    map.setPaintProperty('line', property, this.checked ? 1 : 0);
+                });
+            });
+
+
+
+
+
+    </script>
+
+
+</body>
+
+</html>

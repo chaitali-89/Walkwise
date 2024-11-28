@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Add 3D Models</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://unpkg.com/three@0.126.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/MTLLoader.js"></script>
+    <div id="map"></div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiY2hhaS05OCIsImEiOiJjbHY1b251cXUwNTlhMnFyb3N1aWw1aWJqIn0.ZQnazBd0z3c-cH4RPissrg';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/light-v11', // Change to a valid style
+            zoom: 18,
+            center: [148.9819, -35.3981],
+            pitch: 60,
+            antialias: true
+        });
+
+        const modelAltitude = 0;
+
+        const treeLocations = [
+            { lng: 148.9819, lat: -35.39847 },
+            { lng: 148.9820, lat: -35.39848 },
+            { lng: 148.9821, lat: -35.39849 }
+        ];
+
+        const THREE = window.THREE;
+
+        const customLayer = {
+            id: '3d-model',
+            type: 'custom',
+            renderingMode: '3d',
+            onAdd: function (map, gl) {
+                this.camera = new THREE.Camera();
+                this.scene = new THREE.Scene();
+
+                // Add ambient light
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                this.scene.add(ambientLight);
+
+                // Add directional lights
+                const directionalLight = new THREE.DirectionalLight(0xffffff);
+                directionalLight.position.set(0, -70, 100).normalize();
+                this.scene.add(directionalLight);
+
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff);
+                directionalLight2.position.set(0, 70, 100).normalize();
+                this.scene.add(directionalLight2);
+
+                // Load the materials and the OBJ model for each tree location
+                const mtlLoader = new THREE.MTLLoader();
+                const objLoader = new THREE.OBJLoader();
+
+                mtlLoader.load('/data/Tree low.mtl', (materials) => {
+                    materials.preload();
+                    objLoader.setMaterials(materials);
+
+                    treeLocations.forEach((location) => {
+                        objLoader.load('/data/Tree low.obj', (object) => {
+                            // Scale the object down (e.g., to 50% of its original size)
+                            object.scale.set(0.1, 0.1, 0.1); // Adjust these values as needed
+                            
+                            // Set the position of the object based on the location
+                            const modelAsMercatorCoordinate = mapboxgl.MercatorCoordinate.fromLngLat(
+                                [location.lng, location.lat],
+                                modelAltitude
+                            );
+
+                            object.position.set(
+                                modelAsMercatorCoordinate.x,
+                                modelAsMercatorCoordinate.y,
+                                modelAsMercatorCoordinate.z
+                            );
+
+                            this.scene.add(object);
+                        });
+                    });
+                });
+
+                this.map = map;
+
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: map.getCanvas(),
+                    context: gl,
+                    antialias: true
+                });
+
+                this.renderer.setClearColor(0xeeeeee, 1); // Set clear color to light grey
+                this.renderer.autoClear = false;
+            },
+            render: function (gl, matrix) {
+                const m = new THREE.Matrix4().fromArray(matrix);
+
+                this.camera.projectionMatrix = m;
+                this.camera.position.set(0, 0, 100); // Adjust camera position if needed
+                this.camera.lookAt(0, 0, 0); // Ensure the camera is looking at the scene
+
+                this.renderer.resetState();
+                this.renderer.render(this.scene, this.camera);
+                this.map.triggerRepaint();
+            }
+        };
+
+        map.on('style.load', () => {
+            map.addLayer(customLayer, 'waterway-label');
+        });
+    </script>
+</body>
+
+</html>

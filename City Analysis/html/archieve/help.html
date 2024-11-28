@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Add 3D Models from GeoJSON</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.0/mapbox-gl.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://unpkg.com/three@0.126.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/MTLLoader.js"></script>
+    <div id="map"></div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiY2hhaS05OCIsImEiOiJjbHY1b251cXUwNTlhMnFyb3N1aWw1aWJqIn0.ZQnazBd0z3c-cH4RPissrg';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/light-v11',
+            zoom: 18,
+            center: [12.549650579806109, 55.659556422638197],
+            pitch: 60,
+            antialias: true
+        });
+
+        const modelAltitude = 0;
+        const modelRotate = [Math.PI / 2, 0, 0];
+
+        fetch('/data/tree.geojson')
+            .then(response => response.json())
+            .then(data => {
+                const modelAsMercatorCoordinate = (lng, lat) => {
+                    return mapboxgl.MercatorCoordinate.fromLngLat([lng, lat], modelAltitude);
+                };
+
+                const THREE = window.THREE;
+
+                const customLayer = {
+                    id: '3d-models',
+                    type: 'custom',
+                    renderingMode: '3d',
+                    onAdd: function (map, gl) {
+                        this.camera = new THREE.PerspectiveCamera();
+                        this.scene = new THREE.Scene();
+
+                        this.renderer = new THREE.WebGLRenderer({
+                            canvas: map.getCanvas(),
+                            context: gl,
+                            antialias: true
+                        });
+                        this.renderer.setSize(map.getCanvas().width, map.getCanvas().height);
+                        this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+                        this.renderer.setClearColor(0xffffff, 0); // Transparent background
+
+                        // Add a simple light source to the scene
+                        const light = new THREE.AmbientLight(0x404040); // soft white light
+                        this.scene.add(light);
+
+                        // Load materials and OBJ model
+                        const mtlLoader = new THREE.MTLLoader();
+                        const objLoader = new THREE.OBJLoader();
+
+                        mtlLoader.load('/data/Tree low.mtl', (materials) => {
+                            materials.preload();
+                            objLoader.setMaterials(materials);
+
+                            data.features.forEach(feature => {
+                                const lng = feature.geometry.coordinates[0];
+                                const lat = feature.geometry.coordinates[1];
+
+                                const modelCoord = modelAsMercatorCoordinate(lng, lat);
+
+                                objLoader.load('/data/Tree low.obj', (object) => {
+                                    object.scale.set(0.2, 0.2, 0.2);
+                                    object.position.set(modelCoord.x, modelCoord.y, modelCoord.z);
+                                    this.scene.add(object);
+                                    this.map.triggerRepaint();
+                                });
+                            });
+                        });
+
+                        this.map = map;
+                        this.renderer.autoClear = false;
+                    },
+                    render: function (gl, matrix) {
+                        const m = new THREE.Matrix4().fromArray(matrix);
+                        this.camera.projectionMatrix = m;
+                        this.renderer.resetState();
+                        this.renderer.render(this.scene, this.camera);
+                    }
+                };
+
+                map.on('style.load', () => {
+                    map.addLayer(customLayer, 'waterway-label');
+                });
+            })
+            .catch(error => console.error('Error loading GeoJSON:', error));
+    </script>
+</body>
+
+</html>

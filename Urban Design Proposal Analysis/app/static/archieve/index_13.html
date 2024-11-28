@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>WalkWise</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.js"></script>
+    <script
+        src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <link rel="stylesheet"
+        href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css"
+        type="text/css">
+    <!-- Import Mapbox GL Draw -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css"
+        type="text/css" />
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    
+    <script src="https://unpkg.com/threebox@latest/dist/threebox.js"></script>
+
+    <!-- <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css"
+        type="text/css" /> -->
+
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100%;
+            width: 100%;
+        }
+
+        body * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+            width: 100%;
+        }
+
+        #north-arrow {
+            position: absolute;
+            top: 100px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background-image: url('/static/north.png');
+            background-size: contain;
+        }
+
+        /* New styles for the day/night toggle */
+        #day-night-toggle {
+            position: absolute;
+            top: 60px;
+            /* Adjust as needed */
+            right: 20px;
+            /* Adjust as needed */
+            width: 42px;
+            /* Adjust size as needed */
+            height: 42px;
+            /* Adjust size as needed */
+            cursor: pointer;
+            z-index: 1;
+            /* Ensure it is above the map */
+        }
+
+        #score-box {
+            position: absolute;
+            bottom: 250px;
+            width: 176px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 1);
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            font-size: 14px; /* Slightly larger font */
+        }
+
+        #key-map {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px; /* Slightly larger width */
+            height: 180px; /* Slightly larger height */
+            border: 2px solid #333; /* Darker border for contrast */
+            background: white;
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+
+
+        #container {
+            position: relative;
+            /* Allow absolute positioning of children */
+            height: 100%;
+            width: 100%;
+        }
+
+        .button-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1;
+        }
+
+        .bottom-buttons {
+            display: flex;
+            gap: 10px;
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+        }
+        
+
+        .top-buttons {
+            display: flex;
+            gap: 5px;
+            flex-direction: column;
+            top: 50px;
+            width: 200px
+        }
+
+        .btn {
+            background-color: rgb(77, 76, 68);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        .btn:hover {
+            background-color: #1f1529;
+        }
+
+        .info-box {
+            position: absolute;
+            margin: 20px;
+            width: 25%;
+            top: 200px;
+            bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+            overflow-y: scroll;
+        }
+
+        .mapboxgl-ctrl-group button {
+            background-color: transparent;
+            border: 0;
+            box-sizing: border-box;
+            cursor: pointer;
+            display: block;
+            height: 29px;
+            outline: none;
+            overflow: hidden;
+            padding: 0;
+            width: 29px;
+            top: 500px;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 20px auto;
+            /* center the gauge horizontally */
+            margin-bottom: 20px;
+        }
+
+        .gauge-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+
+        .gauge-foreground {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #00FF00;
+            /* Default color, will be overridden by inline style */
+            transform-origin: center center;
+            transform: rotate(0deg);
+            transition: transform 0.5s ease;
+        }
+
+        .gauge-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .popup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .popup-table th {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-bottom: 1px solid #241354;
+        }
+
+        .popup-table td {
+            padding: 10px;
+            border-bottom: 1px solid #aaaaaa;
+        }
+
+        .centered {
+            text-align: center;
+        }
+
+        .popup-content {
+            position: relative;
+            background: rgba(16, 17, 69, 0.1);
+            max-height: 400px;
+            /* Adjust based on your needs */
+            overflow: hidden;
+            border-radius: 10px;
+            padding: 10px 10px 10px 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .slider-container {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            /* Width of the slider */
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .slider {
+            height: 100%;
+            width: 100%;
+        }
+
+        .slider-content {
+            overflow-y: auto;
+            height: 100%;
+            position: relative;
+            padding-right: 20px;
+            /* Ensure content does not overlap the slider */
+        }
+    
+        #fade {
+            display: block;
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            height: 40px;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+            color: #fff;
+            background: #ee8a65;
+        }
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 25%;
+            top: 0;
+            left: 0;
+            padding: 10px;
+        }
+        .map-overlay .map-overlay-inner {
+            background-color: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .map-overlay h2 {
+            line-height: 24px;
+            display: block;
+            margin: 0 0 10px;
+        }
+        .map-overlay input {
+            background-color: transparent;
+            display: inline-block;
+            width: 100%;
+            position: relative;
+            margin: 0;
+            cursor: ew-resize;
+            text-align: center;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+    <div id='container'>
+        <div id="map"></div>
+        <div id="key-map"></div>
+        <div class="map-overlay top">
+            <!-- Add overlay content if needed -->
+        </div>
+        <div class="bottom-buttons">
+            <button id="fly_to_vesterbro" class="btn">Jernbanebyen</button>
+            <button id="city_center" class="btn">City Center</button>
+            <button id="new_1" class="btn">Nordhavnen</button>
+            <button id="cool" class="btn">Bledammen</button>
+            <button id="industrial" class="btn">Meatpacking District (Industrial)</button>
+            <button id="new_2" class="btn">Amager East</button>
+
+            <button id="reset-view" class="btn">Reset</button>
+        </div>
+        <div class="button-container">
+
+            <div class="top-buttons">
+                <input type="file" id="fileInput" class = "btn" />
+                <button id="uploadButton" class="btn">Upload DXF</button>
+                <button id="toggleAmenitiesDistance" class="btn">Distance to Amenities</button>
+                <button id="toggleBusProximity" class="btn">Distance to Transit</button>
+                <button id="toggleDiversity" class="btn">Diversity</button>
+                <button id="toggleDensity" class="btn">Density</button>
+                <button id="toggleDesign" class="btn">Design</button>
+                
+            </div>
+
+            
+        </div>
+        <div id="text-note" style="position: absolute; bottom: 200px; right: 20px; background-color: rgba(255, 255, 255, 0.8); padding: 100px; border-radius: 5px;"></div>
+        <img id="day-night-toggle" src="/data/moon.png" alt="Toggle Day/Night" onclick="toggleDayNight()">
+        <div id="score-box">Edge Class Score: <span id="edge-class-score">-</span><br>
+        prop Class Score: <span id="prop-class-score">-</span></div>
+        <div id="north-arrow"></div>
+        
+    </div>
+    </div>
+
+
+
+
+
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiY2hhaS05OCIsImEiOiJjbHY1b251cXUwNTlhMnFyb3N1aWw1aWJqIn0.ZQnazBd0z3c-cH4RPissrg';
+    const INITIAL_CENTER = [12.605816, 55.685339];
+        const INITIAL_ZOOM = 12;
+
+        const DAY_0 = '#6a8532';      // Softer green
+        const DAY_1 = '#87a330';      // Muted light green
+        const DAY_2 = '#a1c349';      // Retaining gold for visibility
+        const DAY_3 = '#f3c053';      // Softer orange
+        const DAY_4 = '#f9a03f';      // Coral for a softer red
+        const DAY_5 = '#eb5e28';      // Softer red
+        const DAY_REST = '#B0B3B6';   // Light gray for rest
+
+        const DAYDens_0 = '#f0f9e8';      // Softer green
+        const DAYDens_1 = '#ccebc5';      // Muted light green
+        const DAYDens_2 = '#a8ddb5';      // Retaining gold for visibility
+        const DAYDens_3 = '#7bccc4';      // Softer orange
+        const DAYDens_4 = '#43a2ca';      // Coral for a softer red
+        const DAYDens_5 = '#0868ac';      // Softer red
+        const DAYDens_REST = '#B0B3B6';   // Light gray for rest
+        
+        const NGT_0 = '#66FF66';      // Softer green
+        const NGT_1 = '#B2D67A';      // Muted light green
+        const NGT_2 = '#FFD700';      // Retaining gold for visibility
+        const NGT_3 = '#FFB84D';      // Softer orange
+        const NGT_4 = '#FF7F50';      // Coral for a softer red
+        const NGT_5 = '#FF4C4C';      // Softer red
+        const NGT_REST = '#B0B3B6';   // Light gray for rest
+        const ZOOM_1 = 2;
+        const ZOOM_8 = 10;
+        const ZOOM_DAY_2 = 2;
+        const ZOOM_DAY_10 = 10;
+        const BLUR_1 = 1;
+        const BLUR_6 = 2;
+        const BLUR_DAY1 = 1;
+        const BLUR_DAY2 = 2;
+        const EMISSION_STRENGTH = 1;
+        const OPACITY_1 = 1;
+        const OPACITY_05 = 0.9;
+        const OPACITY_0 = 0;
+        const OPACITY_DAY1 = 1;
+        const OPACITY_DAY08 = 1;
+        const BUTTON_OFF = 'rgb(77, 76, 68)';
+        const BUTTON_ON = '#1f1529';
+        const DAY_STYLE = 'mapbox://styles/mapbox/streets-v11'; // Navigation Day
+        const NIGHT_STYLE = 'mapbox://styles/chai-98/clzstbrfp00f901pi2co7cldy'; // Navigation 3d copy
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/chai-98/cm0jcrb6f005o01qk2r9n836v',
+        center: [12.5587, 55.6760],
+        zoom: 12
+    });
+
+    
+
+   
+
+     // Initialize the key map
+ const keyMap = new mapboxgl.Map({
+    container: 'key-map',
+    style: 'mapbox://styles/mapbox/light-v10', // Use a light style for the key map
+    center: [12.550343, 55.665957], // Center on Copenhagen
+    zoom: 9, // Fixed zoom level
+    interactive: false // Disable interaction for the key map
+});
+
+// Function to update the position of the rectangle on the key map
+function updateKeyMap() {
+    const bounds = map.getBounds(); // Get the current bounds of the main map
+
+    // Get the southwest and northeast corners of the bounds
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
+    // Create a GeoJSON source for the highlighted area
+    const highlightGeoJSON = {
+        type: 'FeatureCollection',
+        features: [{
+            type: 'Feature',
+            geometry: {
+                type: 'Polygon',
+                coordinates: [[
+                    [sw.lng, sw.lat],
+                    [ne.lng, sw.lat],
+                    [ne.lng, ne.lat],
+                    [sw.lng, ne.lat],
+                    [sw.lng, sw.lat]
+                ]]
+            }
+        }]
+    };
+
+    // Check if the style is loaded before adding the layer
+    if (keyMap.isStyleLoaded()) {
+        // Remove previous highlight layer if it exists
+        if (keyMap.getLayer('highlight')) {
+            keyMap.removeLayer('highlight');
+            keyMap.removeSource('highlight-source');
+        }
+
+        // Add the highlight source and layer
+        keyMap.addSource('highlight-source', {
+            type: 'geojson',
+            data: highlightGeoJSON
+        });
+
+        keyMap.addLayer({
+            id: 'highlight',
+            type: 'fill',
+            source: 'highlight-source',
+            layout: {},
+            paint: {
+                'fill-color': 'black', // Highlight color
+                'fill-opacity': 0.5 // Opacity of the highlight
+            }
+        });
+    } else {
+        console.warn("Map style is not loaded yet.");
+    }
+}
+
+// Update the key map on main map move, zoom, pitch, and bearing changes
+map.on('moveend', updateKeyMap);
+map.on('zoomend', updateKeyMap);
+map.on('pitchend', updateKeyMap);
+map.on('rotateend', updateKeyMap);
+
+// Initial update of the key map after the style is loaded
+map.on('style.load', updateKeyMap);
+
+
+    
+    map.addControl(
+        new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl
+        })
+    )
+
+    // North Arrow Rotation Logic
+    map.on('move', () => {
+        const rotation = map.getBearing();
+        document.getElementById('north-arrow').style.transform = `rotate(${-rotation}deg)`;
+    });
+    
+   
+
+    map.on('load', () => {
+
+        
+        // Add the eraser source
+        map.addSource('eraser', {
+            'type': 'geojson',
+            'data': '/static/S_cobe_wgs84 (3).geojson'
+        });
+
+
+        map.addSource('maine', {
+            type: 'geojson',
+            data: '/static/S_cobe_wgs84 (3).geojson'
+        });
+
+         // Remove existing building layer if it exists
+         if (map.getLayer('existing-building-layer')) {
+            map.removeLayer('existing-building-layer');
+        }
+
+        
+        // Add the eraser layer
+        map.addLayer({
+            'id': 'eraser',
+            'type': 'clip',
+            'source': 'eraser',
+            'layout': {
+                'clip-layer-types': ['symbol', 'model']
+            }
+        });
+
+        map.addLayer({
+            'id': 'maine',
+            'type': 'fill',
+            'source': 'maine',
+            'layout': {},
+            'paint': {
+                'fill-color': '#FCFBF9',
+                'fill-opacity': 1,
+                'fill-opacity-transition': { duration: 100 }
+            }
+        });
+
+        map.addLayer({
+            'id': 'outline',
+            'type': 'line',
+            'source': 'maine',
+            'layout': {},
+            'paint': {
+                'line-color': '#000',
+                'line-width': 2
+            }
+        });
+    });
+
+    map.on('zoom', () => {
+        const zoom = map.getZoom();
+        if (zoom > 15) {
+            map.setPaintProperty('maine', 'fill-opacity', 1);
+        }
+    });
+
+    map.setMaxZoom(20);
+
+    map.on('load', () => {
+        // Load and add icons to the map from local files
+        map.loadImage('/static/bus-15.png', (error, image) => {
+            if (error) throw error;
+            map.addImage('bus-15', image);
+        });
+    
+        map.loadImage('/static/metro-15.png', (error, image) => {
+            if (error) throw error;
+            map.addImage('metro-15', image);
+        });
+    
+        map.loadImage('/static/cycle-15.png', (error, image) => {
+            if (error) throw error;
+            map.addImage('bicycle-15', image);
+        });
+    });
+    
+    let geojsonLayerId = null;
+    
+    const layersToRemove = ['base-layer', 'layer-Site', 'layer-Playgrounds', 'layer-Pavement', 'layer-Buildings', 'layer-Street', 'layer-bus stops', 'layer-metro', 'layer-Green_Spaces', 'layer-Tree', 'layer-Cycle Park'];
+    
+    document.getElementById('uploadButton').onclick = function() {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) {
+            alert('Please select a file.');
+            return;
+        }
+    
+        const fileName = fileInput.files[0].name; // Get the file name
+        console.log('Loaded file name:', fileName);
+    
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+    
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.geojson_filename) {
+                loadGeoJSON(data.geojson_filename);
+            }
+        })
+        .catch(error => console.error('Error uploading file:', error));
+    };
+    
+    function loadGeoJSON(filename) {
+        if (geojsonLayerId) {
+            // Remove all layers related to the previous GeoJSON data
+            const layers = map.getStyle().layers;
+            for (const layer of layers) {
+                if (layer.source === 'cobe') {
+                    map.removeLayer(layer.id);
+                }
+            }
+            // Remove the source as well
+            if (map.getSource('cobe')) {
+                map.removeSource('cobe');
+            }
+        }
+    
+        console.log('geojsonLayerId:', geojsonLayerId);
+    
+        fetch(`/geojson/${filename}`)
+        .then(response => response.json())
+        .then(data => {
+            // Add the GeoJSON source
+            map.addSource('cobe', {
+                type: 'geojson',
+                data: data
+            });
+    
+            const baseLayerConfig = {
+                'id': 'base-layer',
+                'source': 'cobe',
+                'filter': ['==', 'Urban_Elements', ''],
+                'type': 'fill',
+                'paint': {
+                    'fill-color': '#FCFCFC',
+                    'fill-opacity': 0
+                },
+                'layout': {
+                    'visibility': 'none'
+                }
+            };
+            map.addLayer(baseLayerConfig);
+    
+            const layerStyles = {
+                'Site': { 'fill-color': '#f6e8c3', 'fill-opacity': 1 },
+                'Pavement': { 'fill-color': '#f1dca7', 'fill-opacity': 1 },
+                'Buildings': { 'fill-color': '#997b66', 'fill-opacity': 1 },
+                'Playgrounds': { 'fill-color': '#d9ae94', 'fill-opacity': 1 },
+                'Street': { 'line-color': '#CBCBCF', 'line-width': 10 },
+                'Tree': { 'fill-color': '#797d62', 'fill-opacity': 1 },
+                'Green_Spaces': { 'fill-color': '#9b9b7a', 'fill-opacity': 1 },
+                'bus stops': { 'icon-image': 'bus-15', 'icon-size': 0.03 }, // Base size
+                'metro': { 'icon-image': 'metro-15', 'icon-size': 0.03 }, // Base size
+                'Cycle Park': { 'icon-image': 'bicycle-15', 'icon-size': 0.1 } // Base size
+            };
+            
+            const layerOrder = ['Site', 'Playgrounds', 'Pavement', 'Buildings', 'Street', 'Green_Spaces', 'Tree', 'Cycle Park', 'bus stops', 'metro'];
+            
+            layerOrder.forEach(element => {
+                const layerId = `layer-${element.replace(/\s/g, '-')}`;
+                const layerType = (element === 'Street') ? 'line' : (element === 'bus stops' || element === 'metro' || element === 'Cycle Park') ? 'symbol' : 'fill';
+            
+                const layerConfig = {
+                    'id': layerId,
+                    'source': 'cobe',
+                    'filter': ['==', 'Urban_Elements', element],
+                    'type': layerType
+                };
+            
+                if (layerType === 'line') {
+                    layerConfig.layout = { 'line-join': 'round', 'line-cap': 'round' };
+                    layerConfig.paint = {
+                        'line-color': layerStyles[element]['line-color'],
+                        'line-width': layerStyles[element]['line-width']
+                    };
+                } else if (layerType === 'fill') {
+                    layerConfig.paint = {
+                        'fill-color': layerStyles[element]['fill-color'] || '#000000',
+                        'fill-opacity': layerStyles[element]['fill-opacity']
+                    };
+                } else if (layerType === 'symbol') {
+                    layerConfig.layout = {
+                        'icon-image': layerStyles[element]['icon-image'],
+                        'icon-size': layerStyles[element]['icon-size'],
+                        'icon-rotation': 0, // Ensure horizontal placement
+                        'icon-allow-overlap': true // Allow overlapping icons
+                    };
+                }
+            
+                // Add the layer to the map
+                map.addLayer(layerConfig, 'outline');
+            });
+            
+            // Function to set icon size and street line width based on zoom level
+            function setStylesBasedOnZoom() {
+                const zoom = map.getZoom();
+                let iconSize;
+                let lineWidth;
+            
+                // Adjust icon size and line width based on zoom level
+                if (zoom < 10) {
+                    iconSize = 0.03; // Smaller size for low zoom levels
+                    lineWidth = 8; // Thinner line for low zoom levels
+                } else if (zoom < 12) {
+                    iconSize = 0.05; // Medium size for mid zoom levels
+                    lineWidth = 10; // Medium line width for mid zoom levels
+                } else {
+                    iconSize = 0.03; // Larger size for high zoom levels
+                    lineWidth = 8; // Thicker line for high zoom levels
+                }
+            
+                // Update icon size for relevant layers
+                ['bus stops', 'metro', 'Cycle Park'].forEach(element => {
+                    const layerId = `layer-${element.replace(/\s/g, '-')}`;
+                    if (map.getLayer(layerId)) {
+                        map.setLayoutProperty(layerId, 'icon-size', iconSize);
+                        // Hide symbols if zoom level is above a certain threshold
+                        if (zoom < 14.2) { // Change this value to your desired zoom level
+                            map.setLayoutProperty(layerId, 'visibility', 'none');
+                        } else {
+                            map.setLayoutProperty(layerId, 'visibility', 'visible');
+                        }
+                    }
+                });
+            
+                // Update line width for the street layer
+                const streetLayerId = 'layer-Street';
+                if (map.getLayer(streetLayerId)) {
+                    map.setPaintProperty(streetLayerId, 'line-width', lineWidth);
+                }
+            }
+            
+            // Set initial styles based on zoom
+            setStylesBasedOnZoom();
+            
+            // Listen for zoom events to adjust styles dynamically
+            map.on('zoom', () => {
+                setStylesBasedOnZoom();
+            });
+
+
+        
+
+    // Add 3D buildings layer
+    const add3DBuildingsLayer = () => {
+        const layers = map.getStyle().layers;
+        const labelLayerId = layers.find(layer => layer.type === 'symbol' && layer.layout['text-field']).id;
+
+        let sourceLayer = 'Buildings'; // Default source layer name
+
+        // Check if layerStyles has a 'source-layer' property for 'Buildings'
+        if (layerStyles['Buildings'] && layerStyles['Buildings']['source-layer']) {
+            sourceLayer = layerStyles['Buildings']['source-layer'];
+        }
+
+        map.addLayer({
+            'id': 'add-3d-buildings',
+            'source': 'cobe',
+            'filter': ['==', 'extrude', 'true'],
+            'type': 'fill-extrusion',
+            'minzoom': 11,
+            'paint': {
+                'fill-extrusion-color': '#997b66', // Set a solid color for the extrusion
+                'fill-extrusion-height': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    11, // Start at zoom level 11
+                    0, // Height at zoom level 11
+                    13, // Maximum zoom level for extrusion
+                    ['get', 'height'] // Get height from GeoJSON
+                ],
+                'fill-extrusion-base': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    11, // Start at zoom level 11
+                    0, // Base at zoom level 11
+                    13, // Maximum zoom level for base
+                    ['get', 'min_height'] // Get base height from GeoJSON
+                ],
+                'fill-extrusion-opacity': 1 // Ensure full opacity
+            }
+        });
+    };
+
+    // Call the function to add 3D buildings layer
+    add3DBuildingsLayer();
+
+    window.onload = function() {
+
+        const tb = new Threebox(map, map.getCanvasContainer(), {
+            defaultLights: true,
+            model: function(feature) {
+              if (feature.properties.urban_element === 'tree') {
+                return '/static/Tree low.obj'; // Replace with the correct 3D model path
+              }
+            }
+            });
+
+    const treeFeatures = data.features.filter(feature => feature.properties.Urban_Elements === 'Tree');
+
+      // Add trees to the map
+      map.addLayer({
+        id: '3d-trees',
+        type: 'custom',
+        renderingMode: '3d',
+        onAdd: function() {
+          const tb = new Threebox(map, map.getCanvasContainer(), {
+            defaultLights: true,
+          });
+
+          treeFeatures.forEach(feature => {
+            const coordinates = feature.geometry.coordinates[0]; // Get coordinates
+            const treePosition = {
+              lng: coordinates[0],
+              lat: coordinates[1],
+              alt: 0 // Set altitude if needed
+            };
+
+            // Load the OBJ tree model
+            tb.loadObj('./static/Tree low.obj', (model) => {
+              model.setRotation({ x: 0, y: 0, z: 0 });
+              model.setPosition(treePosition);
+              model.setScale(0.5); // Adjust scale as needed
+              tb.add(model);
+            });
+          });
+        },
+        render: function(gl, matrix) {
+          tb.update();
+        }
+      });
+    };
+
+
+    
+    geojsonLayerId = 'base-layer', 'add-3d-buildings', 'layer-Site', 'layer-Playgrounds', 'layer-Pavement', 'layer-Buildings', 'layer-Street', 'layer-bus stops', 'layer-metro', 'layer-Green_Spaces', 'layer-Tree', 'layer-Cycle Park', '3d-trees';
+
+
+                
+            })
+            .catch(error => console.error('Error loading GeoJSON:', error));
+    }
+
+    
+
+    
+    function addGeoJsonSources() {
+        if (!map.getSource('walk')) {
+            map.addSource('walk', {
+                type: 'geojson',
+                data: '/static/Diversity.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('walk-cobe')) {
+            map.addSource('walk-cobe', {
+                type: 'geojson',
+                data: '/static/cobe_walk.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('walk-snoh')) {
+            map.addSource('walk-snoh', {
+                type: 'geojson',
+                data: '/static/snoh_walk.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('walk-big')) {
+            map.addSource('walk-big', {
+                type: 'geojson',
+                data: '/static/big_walk.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('amenity-distance')) {
+            map.addSource('amenity-distance', {
+                type: 'geojson',
+                data: '/static/Amenities.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('amty-dist-cobe')) {
+            map.addSource('amty-dist-cobe', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('amty-dist-snoh')) {
+            map.addSource('amty-dist-snoh', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('amty-dist-big')) {
+            map.addSource('amty-dist-big', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('bus-proximity')) {
+            map.addSource('bus-proximity', {
+                type: 'geojson',
+                data: '/static/Bus_Proximity.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('bus-prox-cobe')) {
+            map.addSource('bus-prox-cobe', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('bus-prox-snoh')) {
+            map.addSource('bus-prox-snoh', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('bus-prox-big')) {
+            map.addSource('bus-prox-big', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('diversity')) {
+            map.addSource('diversity', {
+                type: 'geojson',
+                data: '/static/Diversity.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('div-cobe')) {
+            map.addSource('div-cobe', {
+                type: 'geojson',
+                data: '/static/cobe_div.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('div-snoh')) {
+            map.addSource('div-snoh', {
+                type: 'geojson',
+                data: '/static/snoh_div.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('div-big')) {
+            map.addSource('div-big', {
+                type: 'geojson',
+                data: '/static/big_div.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('density')) {
+            map.addSource('density', {
+                type: 'geojson',
+                data: '/static/Density.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('den-cobe')) {
+            map.addSource('den-cobe', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('den-snoh')) {
+            map.addSource('den-snoh', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('den-big')) {
+            map.addSource('den-big', {
+                type: 'geojson',
+                data: '/',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('design')) {
+            map.addSource('design', {
+                type: 'geojson',
+                data: '/static/Design.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('des-cobe')) {
+            map.addSource('des-cobe', {
+                type: 'geojson',
+                data: '/static/cobe_des.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('des-snoh')) {
+            map.addSource('des-snoh', {
+                type: 'geojson',
+                data: '/static/snoh_des.geojson',
+                promoteId: 'osmid'
+            });
+        }
+        if (!map.getSource('des-big')) {
+            map.addSource('des-big', {
+                type: 'geojson',
+                data: '/static/big_des.geojson',
+                promoteId: 'osmid'
+            });
+        }
+    }
+    
+
+    const DayLayerProperties = {
+        'line-color': [
+            'match',
+            ['get', 'edge_class'],
+            0, DAY_0,
+            1, DAY_1,
+            2, DAY_2,
+            3, DAY_3,
+            4, DAY_4,
+            5, DAY_5,
+            DAY_REST
+        ],
+        'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            14, ZOOM_DAY_2, // Increased width for day
+            18, ZOOM_DAY_10 // Increased width for day
+        ],
+        'line-blur': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            BLUR_DAY1, // Increased blur on hover
+            BLUR_DAY2 // Default blur for day
+        ],
+        'line-emissive-strength': EMISSION_STRENGTH, // Increased emissive strength when hovered
+        'line-opacity': [
+            'case',
+            ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+            ['case',
+                ['boolean', ['feature-state', 'hover'], false],
+                OPACITY_DAY1,
+                OPACITY_DAY08
+            ]
+        ]
+    }
+
+    const NightLayerProperties = {
+        'line-color': [
+            'match',
+            ['get', 'edge_class'],
+            0, NGT_0,
+            1, NGT_1,
+            2, NGT_2,
+            3, NGT_3,
+            4, NGT_4,
+            5, NGT_5,
+            NGT_REST
+        ],
+        'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            14, ZOOM_1,
+            18, ZOOM_8 // Night
+        ],
+        'line-blur': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            BLUR_1, // Blur when hovered
+            BLUR_6 // Default blur
+        ],
+        'line-emissive-strength': EMISSION_STRENGTH, // Increased emissive strength when hovered
+        'line-opacity': [
+            'case',
+            ['==', ['get', 'edge_class'], -1], OPACITY_0, // Set opacity to 0.1 if edge_class is -1
+            ['case',
+                ['boolean', ['feature-state', 'hover'], false],
+                OPACITY_1,
+                OPACITY_05
+            ]
+        ]
+    }
+
+    const LayoutProperties = {
+        visibility: 'none',
+        'line-join': 'round',
+        'line-cap': 'round'
+    }
+
+
+    function loadGeoJsonLayers() {
+        const layers = [
+            {
+                id: 'amenity-distance-line',
+                source: 'amenity-distance',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'amty-dist-cobe-line',
+                source: 'amty-dist-cobe',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'amty-dist-snoh-line',
+                source: 'amty-dist-snoh',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'amty-dist-big-line',
+                source: 'amty-dist-big',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'bus-proximity-line',
+                source: 'bus-proximity',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'bus-prox-cobe-line',
+                source: 'bus-prox-cobe',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'bus-prox-snoh-line',
+                source: 'bus-prox-snoh',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'bus-prox-big-line',
+                source: 'bus-prox-big',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'diversity-line',
+                source: 'diversity',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'div-cobe-line',
+                source: 'div-cobe',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'div-snoh-line',
+                source: 'div-snoh',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'div-big-line',
+                source: 'div-big',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'density-line',
+                source: 'density',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'den-cobe-line',
+                source: 'den-cobe',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'den-snoh-line',
+                source: 'den-snoh',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'den-big-line',
+                source: 'den-big',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'design-line',
+                source: 'design',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'des-cobe-line',
+                source: 'des-cobe',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'des-snoh-line',
+                source: 'des-snoh',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            },
+            {
+                id: 'des-big-line',
+                source: 'des-big',
+                type: 'line',
+                paint: DayLayerProperties,
+                layout: LayoutProperties
+            }
+
+        ];
+
+        layers.forEach(layer => {
+            if (!map.getLayer(layer.id)) {
+                if (map.getSource(layer.source)) {
+                    if (['amty-dist-cobe-line','amty-dist-snoh-line','amty-dist-big-line', 'bus-prox-cobe-line','bus-prox-snoh-line','bus-prox-big-line', 'div-cobe-line','div-snoh-line','div-big-line', 'den-cobe-line','den-snoh-line', 'den-big-line', 'des-cobe-line','des-snoh-line','des-big-line'].includes(layer.id)) {
+                        // Add layers above 'layer-Green_Spaces'
+                        map.addLayer(layer);
+                    } else {
+                        // Add all other layers below 'layer-Green_Spaces'
+                        map.addLayer(layer, '3D-extrusions');
+                    }
+                } else {
+                    console.error(`Source ${layer.source} does not exist.`);
+                }
+            }
+        });
+
+
+
+
+
+        let hoveredLineId = null;
+
+        // Add hover functionality
+        addHoverEffect('amenity-distance-line');
+        addHoverEffect('bus-proximity-line');
+        addHoverEffect('diversity-line');
+        addHoverEffect('density-line');
+        addHoverEffect('design-line');
+        addHoverEffect('amty-dist-cobe-line');
+        addHoverEffect('amty-dist-snoh-line');
+        addHoverEffect('amty-dist-big-line');
+        addHoverEffect('bus-prox-cobe-line');
+        addHoverEffect('bus-prox-snoh-line');
+        addHoverEffect('bus-prox-big-line');
+        addHoverEffect('div-cobe-line');
+        addHoverEffect('div-snoh-line');
+        addHoverEffect('div-big-line');
+        addHoverEffect('den-cobe-line');
+        addHoverEffect('den-snoh-line');
+        addHoverEffect('den-big-line');
+        addHoverEffect('des-cobe-line');
+        addHoverEffect('des-snoh-line');
+        addHoverEffect('des-big-line');
+
+    }
+
+    function addHoverEffect(layerId) {
+        map.on('mouseenter', layerId, (e) => {
+            // Change the cursor to a pointer
+            map.getCanvas().style.cursor = 'pointer';
+
+            // Get the feature ID(s)
+            const features = map.queryRenderedFeatures(e.point, {
+                layers: [layerId]
+            });
+
+            if (features.length) {
+                const featureId = features[0].id; // Assuming you want to hover the first feature
+                // Set the feature state to hover
+                map.setFeatureState(
+                    { source: features[0].source, id: featureId },
+                    { hover: true }
+                );
+            }
+        });
+
+        map.on('mouseleave', layerId, () => {
+            // Reset the cursor
+            map.getCanvas().style.cursor = '';
+
+            // Reset the feature state
+            map.queryRenderedFeatures({ layers: [layerId] }).forEach(feature => {
+                map.setFeatureState(
+                    { source: feature.source, id: feature.id },
+                    { hover: false }
+                );
+            });
+        });
+    }
+
+    // UPDATE PAINT PROPERTIES AS PER DAY AND NIGHT VIEW
+        //function updateLayerPaintProperties(style) {
+        // Define paint properties for day and night views
+    
+
+        const dayPaintProperties = {
+            'amenity-distance-line': DayLayerProperties,
+            'bus-proximity-line': DayLayerProperties,
+            'diversity-line': DayLayerProperties,
+            'density-line': DayLayerProperties,
+            'design-line': DayLayerProperties,
+            'amty-dist-cobe-line': DayLayerProperties,
+            'amty-dist-snoh-line': DayLayerProperties,
+            'amty-dist-big-line': DayLayerProperties,
+            'bus-prox-cobe-line': DayLayerProperties,
+            'bus-prox-snoh-line': DayLayerProperties,
+            'bus-prox-big-line': DayLayerProperties,
+            'div-cobe-line': DayLayerProperties,
+            'div-snoh-line': DayLayerProperties,
+            'div-big-line': DayLayerProperties,
+            'den-cobe-line': DayLayerProperties,
+            'den-snoh-line': DayLayerProperties,
+            'den-big-line': DayLayerProperties,
+            'des-cobe-line': DayLayerProperties,
+            'des-snoh-line': DayLayerProperties,
+            'des-big-line': DayLayerProperties
+
+
+        };
+
+        const nightPaintProperties = {
+            'amenity-distance-line': NightLayerProperties,
+            'bus-proximity-line': NightLayerProperties,
+            'diversity-line': NightLayerProperties,
+            'density-line': NightLayerProperties,
+            'design-line': NightLayerProperties,
+            'amty-dist-cobe-line': NightLayerProperties,
+            'amty-dist-snoh-line': NightLayerProperties,
+            'amty-dist-big-line': NightLayerProperties,
+            'bus-prox-cobe-line': NightLayerProperties,
+            'bus-prox-snoh-line': NightLayerProperties,
+            'bus-prox-big-line': NightLayerProperties,
+            'div-cobe-line': NightLayerProperties,
+            'div-snoh-line': NightLayerProperties,
+            'div-big-line': NightLayerProperties,
+            'den-cobe-line': NightLayerProperties,
+            'den-snoh-line': NightLayerProperties,
+            'den-big-line': NightLayerProperties,
+            'des-cobe-line': NightLayerProperties,
+            'des-snoh-line': NightLayerProperties,
+            'des-big-line': NightLayerProperties
+        };
+
+        // Function to update paint properties based on the current style
+        function updatePaintProperties(style) {
+            const paintProperties = style === 'day' ? dayPaintProperties : nightPaintProperties;
+
+            Object.keys(paintProperties).forEach(layerId => {
+                const properties = paintProperties[layerId];
+                if (map.getLayer(layerId)) {
+                    Object.keys(properties).forEach(property => {
+                        map.setPaintProperty(layerId, property, properties[property]);
+                    });
+                }
+            });
+        }
+
+        // Toggle between day and night views
+
+
+        // Function to toggle day and night views
+        function toggleDayNight() {
+            const newStyle = currentStyle === 'night' ? 'day' : 'night';
+            currentStyle = newStyle;
+
+            // Change the image based on the current style
+            const dayNightToggleImg = document.getElementById('day-night-toggle');
+            dayNightToggleImg.src = currentStyle === 'day' ? '/data/sun.png' : '/data/moon.png';
+
+            // Update the map style and paint properties
+            map.setStyle(newStyle === 'day' ? 'mapbox://styles/chai-98/clzzutg9j005m01ph9t2x02k8' : 'mapbox://styles/chai-98/clzstbrfp00f901pi2co7cldy');
+
+            map.once('style.load', () => {
+                addGeoJsonSources(); // Re-add sources after style is loaded
+                loadGeoJsonLayers(); // Re-load layers after style change
+                updatePaintProperties(currentStyle === DAY_STYLE ? 'day' : 'night'); // Update paint properties
+            });
+        }
+
+        function displayTextNote() {
+            const visibleLayer = getVisibleLayer();
+            const textNote = document.getElementById('text-note');
+        
+            if (visibleLayer === 'amenity-distance-line') {
+                textNote.textContent = 'Amenities Distance Layer is visible';
+            } else if (visibleLayer === 'bus-proximity-line') {
+                textNote.textContent = 'Bus Proximity Layer is visible';
+            } else if (visibleLayer === 'diversity-line') {
+                textNote.textContent = 'Diversity Layer is visible';
+            } else if (visibleLayer === 'density-line') {
+                textNote.textContent = 'Density Layer is visible';
+            } else if (visibleLayer === 'design-line') {
+                textNote.textContent = 'Design Layer is visible';
+            } else {
+                textNote.textContent = '';
+            }
+        }
+        
+        function getVisibleLayer() {
+            if (map.getLayoutProperty('amenity-distance-line', 'visibility') === 'visible') {
+                return 'amenity-distance-line';
+            } else if (map.getLayoutProperty('bus-proximity-line', 'visibility') === 'visible') {
+                return 'bus-proximity-line';
+            } else if (map.getLayoutProperty('diversity-line', 'visibility') === 'visible') {
+                return 'diversity-line';
+            } else if (map.getLayoutProperty('density-line', 'visibility') === 'visible') {
+                return 'density-line';
+            } else if (map.getLayoutProperty('design-line', 'visibility') === 'visible') {
+                return 'design-line';
+            } else {
+                return '';
+            }
+        }
+
+
+        //Add event Listners i.e. buttons to the features amenity layers
+        document.addEventListener('DOMContentLoaded', () => {
+            map.on('load', () => {
+                addGeoJsonSources(); // Add sources initially
+                loadGeoJsonLayers(); // Load layers initially
+
+                document.getElementById('toggleAmenitiesDistance').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('amenity-distance-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                
+                    // Get the current file name
+                    const fileName = fileInput.files[0].name; // Get the file name
+                
+                    // Determine which line layers to show based on the file name
+                    let lineLayerToShow = '';
+                    if (fileName === 'cobe.dxf') {
+                        lineLayerToShow = 'amty-dist-cobe-line';
+                    } else if (fileName === 'snohetta.dxf') {
+                        lineLayerToShow = 'amty-dist-snoh-line';
+                    } else if (fileName === 'big.dxf') {
+                        lineLayerToShow = 'amty-dist-big-line';
+                    }
+                
+                    // Set visibility for the amenity distance line and the corresponding line layer
+                    map.setLayoutProperty('amenity-distance-line', 'visibility', newVisibility);
+                    if (lineLayerToShow) {
+                        map.setLayoutProperty(lineLayerToShow, 'visibility', newVisibility); // Toggle the specific line layer
+                    }
+                
+                    // Turn off other layers if amenities distance is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('landuse-fill', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                        map.setLayoutProperty('diversity-line', 'visibility', 'none');
+                        map.setLayoutProperty('density-line', 'visibility', 'none');
+                        map.setLayoutProperty('design-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-big-line', 'visibility', 'none');
+                    }
+                
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+
+                    displayTextNote();
+                });
+
+                document.getElementById('toggleBusProximity').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('bus-proximity-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                
+                    // Get the current file name
+                    const fileName = fileInput.files[0].name; // Get the file name
+                
+                    // Determine which line layers to show based on the file name
+                    let lineLayerToShow = '';
+                    if (fileName === 'cobe.dxf') {
+                        lineLayerToShow = 'bus-prox-cobe-line';
+                    } else if (fileName === 'snohetta.dxf') {
+                        lineLayerToShow = 'bus-prox-snoh-line';
+                    } else if (fileName === 'big.dxf') {
+                        lineLayerToShow = 'bus-prox-big-line';
+                    }
+                
+                    // Set visibility for the bus proximity line and the corresponding line layer
+                    map.setLayoutProperty('bus-proximity-line', 'visibility', newVisibility);
+                    if (lineLayerToShow) {
+                        map.setLayoutProperty(lineLayerToShow, 'visibility', newVisibility); // Toggle the specific line layer
+                    }
+                
+                    // Turn off other layers if bus proximity is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('landuse-fill', 'visibility', 'none');
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('diversity-line', 'visibility', 'none');
+                        map.setLayoutProperty('density-line', 'visibility', 'none');
+                        map.setLayoutProperty('design-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-big-line', 'visibility', 'none');
+                    }
+                
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+
+                    displayTextNote();
+                });
+
+                document.getElementById('toggleDiversity').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('diversity-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                    
+                    // Get the current file name
+                    const fileName = fileInput.files[0].name; // Get the file name
+                
+                    // Determine which line layers to show based on the file name
+                    let lineLayerToShow = '';
+                    if (fileName === 'cobe.dxf') {
+                        lineLayerToShow = 'div-cobe-line';
+                    } else if (fileName === 'snohetta.dxf') {
+                        lineLayerToShow = 'div-snoh-line';
+                    } else if (fileName === 'big.dxf') {
+                        lineLayerToShow = 'div-big-line';
+                    }
+                
+                    // Set visibility for the diversity line and the corresponding line layer
+                    map.setLayoutProperty('diversity-line', 'visibility', newVisibility);
+                    if (lineLayerToShow) {
+                        map.setLayoutProperty(lineLayerToShow, 'visibility', newVisibility); // Toggle the specific line layer
+                    }
+                
+                    // Turn off other layers if diversity is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('landuse-fill', 'visibility', 'none');
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                        map.setLayoutProperty('density-line', 'visibility', 'none');
+                        map.setLayoutProperty('design-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-big-line', 'visibility', 'none');
+                    }
+
+                    // Update the score box after toggling the layer
+                    updateScoreBox2();
+                
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+
+                    displayTextNote();
+                });
+
+                document.getElementById('toggleDensity').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('density-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                
+                    // Get the current file name
+                    const fileName = fileInput.files[0].name; // Get the file name
+                
+                    // Determine which line layers to show based on the file name
+                    let lineLayerToShow = '';
+                    if (fileName === 'cobe.dxf') {
+                        lineLayerToShow = 'den-cobe-line';
+                    } else if (fileName === 'snohetta.dxf') {
+                        lineLayerToShow = 'den-snoh-line';
+                    } else if (fileName === 'big.dxf') {
+                        lineLayerToShow = 'den-big-line';
+                    }
+                
+                    // Set visibility for the density line and the corresponding line layer
+                    map.setLayoutProperty('density-line', 'visibility', newVisibility);
+                    if (lineLayerToShow) {
+                        map.setLayoutProperty(lineLayerToShow, 'visibility', newVisibility); // Toggle the specific line layer
+                    }
+                
+                    // Turn off other layers if density is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                        map.setLayoutProperty('diversity-line', 'visibility', 'none');
+                        map.setLayoutProperty('design-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('des-big-line', 'visibility', 'none');
+                    }
+                
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+
+                    displayTextNote();
+                });
+
+
+
+                document.getElementById('toggleDesign').addEventListener('click', () => {
+                    const visibility = map.getLayoutProperty('design-line', 'visibility');
+                    const newVisibility = visibility === 'none' ? 'visible' : 'none';
+                   
+                     // Get the current file name
+                     const fileName = fileInput.files[0].name; // Get the file name
+                
+                     // Determine which line layers to show based on the file name
+                     let lineLayerToShow = '';
+                     if (fileName === 'cobe.dxf') {
+                         lineLayerToShow = 'des-cobe-line';
+                     } else if (fileName === 'snohetta.dxf') {
+                         lineLayerToShow = 'des-snoh-line';
+                     } else if (fileName === 'big.dxf') {
+                         lineLayerToShow = 'des-big-line';
+                     }
+                 
+                     // Set visibility for the density line and the corresponding line layer
+                     map.setLayoutProperty('design-line', 'visibility', newVisibility);
+                     if (lineLayerToShow) {
+                         map.setLayoutProperty(lineLayerToShow, 'visibility', newVisibility); // Toggle the specific line layer
+                     }
+
+                    // Turn off other layers if design is turned on
+                    if (newVisibility === 'visible') {
+                        map.setLayoutProperty('amenity-distance-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-proximity-line', 'visibility', 'none');
+                        map.setLayoutProperty('diversity-line', 'visibility', 'none');
+                        map.setLayoutProperty('density-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('amty-dist-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('bus-prox-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('div-big-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-cobe-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-snoh-line', 'visibility', 'none');
+                        map.setLayoutProperty('den-big-line', 'visibility', 'none');
+                    }
+
+                    // Recalculate edge class and update isochrone color only when the layer is turned on
+                    if (!geoJsonLayerVisible) {
+                        calculateEdgeClassAndColor(map.getSource('iso')._data);
+                    } else {
+                        // If the layer is turned on, recalculate the color based on the newly visible layer
+                        getIso(); // Optionally call to refresh the isochrone
+                    }
+
+                    displayTextNote();
+                });
+            });
+        });
+
+
+        
+        
+
+        // Function to calculate the overall edge class score
+        function calculateEdgeClassAndScore(geoJsonData) {
+            let totalScore = 0;
+            let numEdges = 0;
+        
+            geoJsonData.features.forEach(feature => {
+                if (feature.properties.edge_class) {
+                    totalScore += feature.properties.edge_class;
+                    numEdges++;
+                }
+            });
+        
+            const overallScore = numEdges > 0 ? totalScore / numEdges : 0;
+        
+            // Update the score display
+            document.getElementById('prop-class-score').textContent = overallScore.toFixed(2);
+        }
+
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            map.on('load', () => {
+                addGeoJsonSources(); // Add sources initially
+                loadGeoJsonLayers(); // Load layers initially
+
+                // Fly to Vesterbro button
+                document.getElementById('fly_to_vesterbro').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.548210859480946, 55.65924381744574],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+
+                // Fly to Vesterbro button
+                document.getElementById('city_center').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.574958078728185, 55.67862427281513],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('new_1').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.606680174238633, 55.715658704138924],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('cool').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.559679890862206, 55.69132942151625],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('industrial').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.558270235456076, 55.670084677991895],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Fly to Vesterbro button
+                document.getElementById('new_2').addEventListener('click', () => {
+                    map.flyTo({
+                        center: [12.62263242998028, 55.66389592066291],
+                        zoom: 15.2,
+                        pitch: 60,
+                        essential: true
+                    });
+                });
+
+                // Reset view button
+                document.getElementById('reset-view').addEventListener('click', () => {
+                    map.flyTo({
+                        center: INITIAL_CENTER,
+                        zoom: INITIAL_ZOOM,
+                        pitch: 0,
+                        essential: true
+                    });
+                });
+            });
+        });
+
+        
+// Function to calculate the overall edge class score
+// Function to calculate the overall edge class score
+
+
+
+
+
+
+
+
+
+        // Add click event to reset north arrow position
+        document.getElementById('north-arrow').addEventListener('click', () => {
+            document.getElementById('north-arrow').style.transform = 'rotate(0deg)';
+            map.setBearing(0); // Reset bearing to 0 (north orientation)
+        });
+
+
+
+
+        //map on click popup feature
+        // Create a variable to store the current popup instance
+        function getRatingColor(edgeClass) {
+            if (edgeClass > 0) {
+                return '#00FF00'; // green
+            } else if (edgeClass > 1) {
+                return '#FFFF00'; // yellow
+            } else if (edgeClass > 2) {
+                return '#FFA500'; // orange
+            } else {
+                return '#FF0000'; // red
+            }
+        }
+
+
+
+
+        //on click popup feature
+        let currentPopup = null;
+
+        map.on('click', (e) => {
+            if (currentPopup) {
+                currentPopup.remove();
+            }
+
+            const features = map.queryRenderedFeatures(e.point, { layers: ['road', 'building', 'landuse', 'poi-label', 'amenity-distance-line', 'bus-proximity-line', 'diversity-line', 'density-line', 'design-line'] });
+
+            if (!features.length) {
+                return;
+            }
+
+            let popupContent = '';
+            const visibleLayers = {
+                'amenity-distance-line': map.getLayoutProperty('amenity-distance-line', 'visibility') === 'visible',
+                'bus-proximity-line': map.getLayoutProperty('bus-proximity-line', 'visibility') === 'visible',
+                'diversity-line': map.getLayoutProperty('diversity-line', 'visibility') === 'visible',
+                'density-line': map.getLayoutProperty('density-line', 'visibility') === 'visible',
+                'design-line': map.getLayoutProperty('design-line', 'visibility') === 'visible'
+
+            };
+
+            const feature = features[0]; // Get the first feature
+
+            // Check for road features
+            if (feature.layer.id === 'road') {
+                const roadProperties = feature.properties;
+                popupContent = `
+                    <div class="centered">
+                            <table class="popup-table">
+                        <tr><th>Property</th><th>Value</th></tr>
+                       <tr><td>name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                        <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                        <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                        <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                        <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                         <tr><td>iso_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                    </table>
+                `;
+            } else if (visibleLayers['amenity-distance-line'] && feature.layer.id === 'amenity-distance-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                   
+                            <div class="centered">
+                                <h3>Road 
+                                <br>Amenity Proximity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['bus-proximity-line'] && feature.layer.id === 'bus-proximity-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Bus Proximity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['diversity-line'] && feature.layer.id === 'diversity-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Diversity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['diversity-line'] && feature.layer.id === 'diversity-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Diversity Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            else if (visibleLayers['density-line'] && feature.layer.id === 'density-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                
+                                <br>Density Rating for Streets</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (visibleLayers['design-line'] && feature.layer.id === 'design-line') {
+                const edgeClass = feature.properties.edge_class || 2;
+                const roadProperties = map.queryRenderedFeatures(e.point, { layers: ['road'] })[0].properties;
+                const ratingColor = getRatingColor(edgeClass);
+                popupContent = `
+                    <div class="centered">
+                                <h3>Road 
+                                <br>Design Class</h3>
+                                <div class="gauge-container">
+                                    <div class="gauge-background">
+                                        <div class="gauge-foreground" style="background-color: ${ratingColor}; transform: rotate(${edgeClass * 36}deg);"></div>
+                                    </div>
+                                    <div class="gauge-label">${edgeClass}</div>
+                                </div>
+                            </div>
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${roadProperties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${roadProperties.type || 'N/A'}</td></tr>
+                                <tr><td>Oneway</td><td>${roadProperties.oneway || 'N/A'}</td></tr>
+                                <tr><td>Structure</td><td>${roadProperties.structure || 'N/A'}</td></tr>
+                                <tr><td>Surface</td><td>${roadProperties.surface || 'N/A'}</td></tr>
+                                <tr><td>ISO_3166_2</td><td>${roadProperties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            else {
+                // For other layers like buildings, landuse, poi-label
+                const properties = feature.properties;
+                popupContent = `
+                    <div class="centered">
+                            <table class="popup-table">
+                                <tr><th>Property</th><th>Value</th></tr>
+                                <tr><td>Name</td><td>${properties.name || 'N/A'}</td></tr>
+                                <tr><td>Type</td><td>${properties.type || 'N/A'}</td></tr>
+                                <tr><td>Height</td><td>${properties.height || 'N/A'} m</td></tr>
+                                <tr><td>Class</td><td>${properties.class || 'N/A'}</td></tr>
+                                <tr><td>Landuse Size Rank</td><td>${properties.sizerank || 'N/A'}</td></tr>
+                                
+                                <tr><td>Category</td><td>${properties.category_en || 'N/A'}</td></tr>
+                                <tr><td>iso_3166_2</td><td>${properties.iso_3166_2 || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (popupContent) {
+                currentPopup = new mapboxgl.Popup({ closeButton: true })
+                    .setLngLat(e.lngLat)
+                    .setHTML(`
+                        <div class="popup-content" style="max-height: 300px; overflow-y: auto;">
+  ${popupContent}
+</div>
+                    `)
+                    .addTo(map);
+            }
+        });
+
+
+         
+       
+
+
+        
+
+        document
+            .getElementById('lightPreset')
+            .addEventListener('change', function () {
+                map.setPaintProperty('line', 'line-emissive-strength', this.value === 'day' ? 0.8 : 1);
+            });
+
+        document
+            .querySelectorAll('.map-overlay-inner input[type="checkbox"]')
+            .forEach((checkbox) => {
+                checkbox.addEventListener('change', function () {
+                    const property = this.id.startsWith('show') ? 'visibility' : 'line-opacity';
+                    map.setPaintProperty('line', property, this.checked ? 1 : 0);
+                });
+            });
+
+   
+</script>
+
+</body>
+</html>
